@@ -438,7 +438,7 @@ export default function PaniniSwap() {
             <button onClick={publishToFirebase} disabled={saving}
               aria-label={saved?"Perfil publicado":saving?"Publicando perfil":"Publicar perfil en la red"}
               style={{background:saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"13px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s"}}>
-              {saved?"✓ Publicado":saving?"Publicando...":"Publicar"}
+              {saved?"✓ Guardado":saving?"Guardando...":"Guardar"}
             </button>
           </div>
         </header>
