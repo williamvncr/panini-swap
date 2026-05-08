@@ -299,7 +299,7 @@ export default function PaniniSwap() {
     if(w)setWant(JSON.parse(w));
     if(s)setSeenMatches(new Set(JSON.parse(s)));
     if(l)setUserLoc(JSON.parse(l));
-    const unsub=onSnapshot(collection(db,"players"),snap=>{
+    const unsub=onSnapshot(collection(db,"players"),(snap: any)=>{
       setAllPlayers(snap.docs.map((d:any)=>d.data() as Player));
       setAppLoading(false);
     },()=>setAppLoading(false));
