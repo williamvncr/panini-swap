@@ -511,13 +511,26 @@ export default function PaniniSwap() {
             <span style={{fontSize:"12px",color:"#666",marginLeft:"8px"}}>FIFA World Cup 2026</span>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
-            <span style={{fontSize:"13px",color:"#a0a0bc"}}>
-              <strong style={{color:"#818cf8"}}>{userName}</strong>
-              {userPhone&&<span style={{color:"#25d366",marginLeft:"6px",fontSize:"10px"}} aria-label="WhatsApp registrado">● WA</span>}
-              {userLoc&&<span style={{color:"#22d3ee",marginLeft:"4px",fontSize:"10px"}} aria-label="Ubicación registrada">● 📍</span>}
-            </span>
+            <div style={{textAlign:"right"}}>
+              <span style={{fontSize:"13px",color:"#a0a0bc"}}>
+                <strong style={{color:"#818cf8"}}>{userName}</strong>
+                {userPhone&&<span style={{color:"#25d366",marginLeft:"6px",fontSize:"10px"}} aria-label="WhatsApp registrado">● WA</span>}
+                {userLoc&&<span style={{color:"#22d3ee",marginLeft:"4px",fontSize:"10px"}} aria-label="Ubicación registrada">● 📍</span>}
+              </span>
+              {userUUID&&(
+                <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"3px",justifyContent:"flex-end"}}>
+                  <span style={{fontSize:"11px",color:"#555"}}>Código:</span>
+                  <code style={{fontSize:"12px",color:"#818cf8",fontFamily:"'DM Mono',monospace",fontWeight:"700",letterSpacing:"0.08em"}}>{shortCode(userUUID)}</code>
+                  <button onClick={()=>navigator.clipboard?.writeText(shortCode(userUUID))}
+                    aria-label="Copiar código de perfil"
+                    style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"4px",padding:"1px 7px",color:"#888",fontSize:"10px",cursor:"pointer",fontFamily:"inherit"}}>
+                    Copiar
+                  </button>
+                </div>
+              )}
+            </div>
             <button onClick={publishToFirebase} disabled={saving}
-              aria-label={saved?"Perfil publicado":saving?"Publicando perfil":"Publicar perfil en la red"}
+              aria-label={saved?"Cambios guardados":saving?"Guardando cambios":"Guardar cambios"}
               style={{background:saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"13px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s"}}>
               {saved?"✓ Guardado":saving?"Guardando...":"Guardar"}
             </button>
