@@ -74,7 +74,7 @@ const ALL_CODES = new Set(SECTIONS.flatMap(s => s.codes));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Loc { lat: number; lon: number; }
-interface Player { name: string; phone?: string; have: string[]; want: string[]; loc?: Loc; updatedAt: number; }
+interface Player { uuid: string; name: string; phone?: string; have: string[]; want: string[]; loc?: Loc; updatedAt: number; }
 interface Match extends Player { canGive: string[]; canReceive: string[]; score: number; distKm: number | null; isNew: boolean; }
 
 // ─── Geo ──────────────────────────────────────────────────────────────────────
@@ -95,6 +95,20 @@ function distColor(km:number|null):string {
 // ─── LocalStorage ─────────────────────────────────────────────────────────────
 const lsGet=(k:string)=>{try{return localStorage.getItem(k);}catch{return null;}};
 const lsSet=(k:string,v:string)=>{try{localStorage.setItem(k,v);}catch{}};
+
+// ─── UUID — identificador único por dispositivo ───────────────────────────────
+function getOrCreateUUID():string {
+  let id=lsGet("ps_uuid");
+  if(!id){
+    id=crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36);
+    lsSet("ps_uuid",id);
+  }
+  return id;
+}
+// Código corto legible derivado del UUID (ej: WILL-4A2F)
+function shortCode(uuid:string):string {
+  return uuid.slice(0,8).toUpperCase();
+}
 
 // ─── WhatsApp ─────────────────────────────────────────────────────────────────
 function buildWALink(phone:string,myName:string,canGive:string[],canReceive:string[]):string {
@@ -140,7 +154,7 @@ function StickerPanel({selected,onToggle,accent,labelPrefix}:{selected:string[];
   return (
     <div>
       <nav aria-label="Seleccionar país">
-        <div role="list" style={{display:"flex",flexWrap:"wrap",gap:"6px",marginBottom:"14px",maxHeight:"130px",overflowY:"auto",padding:"2px"}}>
+        <div role="list" style={{display:"flex",flexWrap:"wrap",gap:"6px",marginBottom:"14px",padding:"2px"}}>
           {SECTIONS.map(s=>{
             const count=s.codes.filter(c=>selected.includes(c)).length;
             const isActive=s.prefix===activeSection;
@@ -271,9 +285,12 @@ function MatchCard({match,myName}:{match:Match;myName:string}) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function PaniniSwap() {
-  const [view,setView]               = useState<"setup"|"main">("setup");
+  const [view,setView]               = useState<"setup"|"main"|"restore">("setup");
   const [nameInput,setNameInput]     = useState("");
   const [phoneInput,setPhoneInput]   = useState("");
+  const [restoreCode,setRestoreCode] = useState("");
+  const [restoreError,setRestoreError] = useState("");
+  const [userUUID,setUserUUID]       = useState("");
   const [userName,setUserName]       = useState("");
   const [userPhone,setUserPhone]     = useState("");
   const [userLoc,setUserLoc]         = useState<Loc|null>(null);
@@ -292,6 +309,8 @@ export default function PaniniSwap() {
   const [sortBy,setSortBy]           = useState<"score"|"distance">("score");
 
   useEffect(()=>{
+    const uuid=getOrCreateUUID();
+    setUserUUID(uuid);
     const u=lsGet("ps_user"),ph=lsGet("ps_phone"),h=lsGet("ps_have"),w=lsGet("ps_want"),s=lsGet("ps_seen"),l=lsGet("ps_loc");
     if(u){setUserName(u);setView("main");}
     if(ph)setUserPhone(ph);
@@ -299,7 +318,7 @@ export default function PaniniSwap() {
     if(w)setWant(JSON.parse(w));
     if(s)setSeenMatches(new Set(JSON.parse(s)));
     if(l)setUserLoc(JSON.parse(l));
-    const unsub=onSnapshot(collection(db,"players"),(snap: any)=>{
+    const unsub=onSnapshot(collection(db,"players"),(snap:any)=>{
       setAllPlayers(snap.docs.map((d:any)=>d.data() as Player));
       setAppLoading(false);
     },()=>setAppLoading(false));
@@ -316,7 +335,7 @@ export default function PaniniSwap() {
   },[]);
 
   const rawMatches:Match[]=allPlayers
-    .filter(p=>p.name!==userName)
+    .filter(p=>p.uuid!==userUUID)
     .map(p=>({...p,canGive:p.have.filter(c=>want.includes(c)),canReceive:have.filter(c=>p.want.includes(c)),distKm:(userLoc&&p.loc)?haversineKm(userLoc.lat,userLoc.lon,p.loc.lat,p.loc.lon):null,score:0,isNew:!seenMatches.has(p.name)}))
     .map(p=>({...p,score:p.canGive.length+p.canReceive.length}))
     .filter(m=>m.score>0);
@@ -340,13 +359,30 @@ export default function PaniniSwap() {
     setUserName(nameInput.trim());setUserPhone(phoneInput.trim());setView("main");
   };
 
+  const restoreProfile=async()=>{
+    const code=restoreCode.trim().toLowerCase();
+    if(!code){setRestoreError("Ingresa tu código de perfil.");return;}
+    // Find player in Firestore whose UUID starts with the code
+    const matched=allPlayers.find(p=>p.uuid&&p.uuid.startsWith(code));
+    if(!matched){setRestoreError("No se encontró ningún perfil con ese código. Verifica e intenta de nuevo.");return;}
+    // Restore into this device
+    const newUUID=matched.uuid;
+    lsSet("ps_uuid",newUUID);lsSet("ps_user",matched.name);
+    if(matched.phone)lsSet("ps_phone",matched.phone);
+    lsSet("ps_have",JSON.stringify(matched.have));
+    lsSet("ps_want",JSON.stringify(matched.want));
+    setUserUUID(newUUID);setUserName(matched.name);setUserPhone(matched.phone||"");
+    setHave(matched.have);setWant(matched.want);
+    setView("main");
+  };
+
   const publishToFirebase=async()=>{
     if(!userName||saving)return;
     setSaving(true);
-    const entry:Player={name:userName,phone:userPhone,have,want,updatedAt:Date.now()};
+    const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have,want,updatedAt:Date.now()};
     if(userLoc)entry.loc=userLoc;
     try{
-      await setDoc(doc(db,"players",userName),entry);
+      await setDoc(doc(db,"players",userUUID),entry);
       lsSet("ps_have",JSON.stringify(have));lsSet("ps_want",JSON.stringify(want));
       setSaved(true);setTimeout(()=>setSaved(false),3000);
     }catch(e){console.error(e);}finally{setSaving(false);}
@@ -357,7 +393,7 @@ export default function PaniniSwap() {
   const addToHave=useCallback((cs:string[])=>setHave(p=>[...new Set([...p,...cs])]),[]);
   const addToWant=useCallback((cs:string[])=>setWant(p=>[...new Set([...p,...cs])]),[]);
 
-  const myEntry=allPlayers.find(p=>p.name===userName);
+  const myEntry=allPlayers.find(p=>p.uuid===userUUID);
   const newMatchCount=rawMatches.filter(m=>m.isNew).length;
   const dismissToast=(i:number)=>setToasts(p=>p.filter((_,idx)=>idx!==i));
 
@@ -386,10 +422,11 @@ export default function PaniniSwap() {
       <style>{GLOBAL_CSS}</style>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@400;700;900&display=swap" rel="stylesheet"/>
       <main style={{minHeight:"100vh",background:"#0d0d1a",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bricolage Grotesque',sans-serif",padding:"24px"}}>
-        <div style={{background:"#13131f",border:"2px solid #2a2a3d",borderRadius:"20px",padding:"48px 40px",maxWidth:"420px",width:"100%"}}>
+        <div style={{background:"#13131f",border:"2px solid #2a2a3d",borderRadius:"20px",padding:"48px 40px",maxWidth:"440px",width:"100%"}}>
           <div aria-hidden="true" style={{fontSize:"52px",marginBottom:"12px",textAlign:"center"}}>⚽</div>
-          <h1 style={{color:"#e8e8f0",margin:"0 0 8px",fontSize:"28px",fontWeight:"900",textAlign:"center"}}>Panini Swap</h1>
-          <p style={{color:"#a0a0bc",fontSize:"15px",margin:"0 0 28px",lineHeight:"1.6",textAlign:"center"}}>FIFA World Cup 2026 · Conecta con coleccionistas cerca de ti.</p>
+          <h1 style={{color:"#e8e8f0",margin:"0 0 4px",fontSize:"28px",fontWeight:"900",textAlign:"center"}}>Panini Swap</h1>
+          <p style={{color:"#666",fontSize:"13px",margin:"0 0 28px",textAlign:"center"}}>FIFA World Cup 2026</p>
+
           <div style={{display:"flex",flexDirection:"column",gap:"14px",marginBottom:"8px"}}>
             <div>
               <label htmlFor="setup-name" style={{display:"block",color:"#e8e8f0",fontSize:"14px",fontWeight:"700",marginBottom:"6px"}}>
@@ -405,9 +442,53 @@ export default function PaniniSwap() {
               <p style={{color:"#666",fontSize:"12px",margin:"6px 0 0",lineHeight:"1.5"}}>Con código de país. Solo visible para tus matches.</p>
             </div>
           </div>
+
           <button onClick={saveProfile} disabled={!nameInput.trim()} aria-disabled={!nameInput.trim()}
             style={{width:"100%",marginTop:"20px",background:nameInput.trim()?"#6366f1":"#2a2a3d",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:nameInput.trim()?"#fff":"#666",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:nameInput.trim()?"pointer":"not-allowed",transition:"all 0.2s"}}>
-            Entrar →
+            Crear perfil →
+          </button>
+
+          <div style={{marginTop:"20px",paddingTop:"20px",borderTop:"1px solid #2a2a3d",textAlign:"center"}}>
+            <p style={{color:"#666",fontSize:"13px",margin:"0 0 10px"}}>¿Ya tienes un perfil en otro dispositivo?</p>
+            <button onClick={()=>setView("restore")}
+              style={{background:"none",border:"2px solid #3a3a55",borderRadius:"10px",padding:"10px 20px",color:"#a0a0bc",fontFamily:"inherit",fontSize:"14px",cursor:"pointer",fontWeight:"700"}}>
+              Restaurar con código
+            </button>
+          </div>
+        </div>
+      </main>
+    </>
+  );
+
+  if(view==="restore")return(
+    <>
+      <style>{GLOBAL_CSS}</style>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@400;700;900&display=swap" rel="stylesheet"/>
+      <main style={{minHeight:"100vh",background:"#0d0d1a",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bricolage Grotesque',sans-serif",padding:"24px"}}>
+        <div style={{background:"#13131f",border:"2px solid #2a2a3d",borderRadius:"20px",padding:"48px 40px",maxWidth:"440px",width:"100%"}}>
+          <div aria-hidden="true" style={{fontSize:"40px",marginBottom:"12px",textAlign:"center"}}>🔑</div>
+          <h1 style={{color:"#e8e8f0",margin:"0 0 8px",fontSize:"24px",fontWeight:"900",textAlign:"center"}}>Restaurar perfil</h1>
+          <p style={{color:"#a0a0bc",fontSize:"14px",margin:"0 0 28px",lineHeight:"1.6",textAlign:"center"}}>
+            Ingresa el código de 8 caracteres que aparece en tu perfil del otro dispositivo.
+          </p>
+          <div>
+            <label htmlFor="restore-code" style={{display:"block",color:"#e8e8f0",fontSize:"14px",fontWeight:"700",marginBottom:"6px"}}>
+              Código de perfil
+            </label>
+            <input id="restore-code" value={restoreCode} onChange={e=>{setRestoreCode(e.target.value);setRestoreError("");}}
+              onKeyDown={e=>e.key==="Enter"&&restoreProfile()}
+              placeholder="Ej: A1B2C3D4"
+              style={{...inp,fontFamily:"'DM Mono',monospace",letterSpacing:"0.1em",textTransform:"uppercase" as const}}
+            />
+            {restoreError&&<p role="alert" style={{color:"#f87171",fontSize:"13px",margin:"8px 0 0"}}>{restoreError}</p>}
+          </div>
+          <button onClick={restoreProfile}
+            style={{width:"100%",marginTop:"16px",background:"#6366f1",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:"#fff",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:"pointer"}}>
+            Restaurar perfil →
+          </button>
+          <button onClick={()=>setView("setup")}
+            style={{width:"100%",marginTop:"10px",background:"none",border:"2px solid #3a3a55",borderRadius:"10px",padding:"12px",color:"#a0a0bc",fontFamily:"inherit",fontSize:"14px",cursor:"pointer"}}>
+            ← Volver
           </button>
         </div>
       </main>
@@ -427,7 +508,7 @@ export default function PaniniSwap() {
         <header style={{background:"#13131f",borderBottom:"2px solid #1e1e2e",padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10}}>
           <div>
             <span style={{fontSize:"19px",fontWeight:"900"}}><span aria-hidden="true">⚽</span> Panini Swap</span>
-            <span style={{fontSize:"12px",color:"#666",marginLeft:"8px"}}>WC2026</span>
+            <span style={{fontSize:"12px",color:"#666",marginLeft:"8px"}}>FIFA World Cup 2026</span>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
             <span style={{fontSize:"13px",color:"#a0a0bc"}}>
@@ -438,7 +519,7 @@ export default function PaniniSwap() {
             <button onClick={publishToFirebase} disabled={saving}
               aria-label={saved?"Perfil publicado":saving?"Publicando perfil":"Publicar perfil en la red"}
               style={{background:saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"13px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s"}}>
-              {saved?"✓ Guardado":saving?"Guardando...":"Guardar"}
+              {saved?"✓ Publicado":saving?"Publicando...":"Publicar"}
             </button>
           </div>
         </header>
@@ -542,13 +623,24 @@ export default function PaniniSwap() {
             {myEntry&&(
               <section aria-label="Tu perfil publicado" style={{marginTop:"24px",padding:"16px",background:"#13131f",borderRadius:"12px",border:"2px solid #1e1e2e"}}>
                 <h2 style={{fontSize:"13px",color:"#888",fontWeight:"400",margin:"0 0 10px"}}>Tu perfil en la red</h2>
-                <dl style={{display:"flex",flexWrap:"wrap" as const,gap:"14px",fontSize:"13px",margin:0}}>
+                <dl style={{display:"flex",flexWrap:"wrap" as const,gap:"14px",fontSize:"13px",margin:"0 0 14px"}}>
                   <div><dt style={{display:"inline",color:"#888"}}>Repetidas: </dt><dd style={{display:"inline",color:"#f59e0b",margin:0,fontWeight:"700"}}>{myEntry.have.length}</dd></div>
                   <div><dt style={{display:"inline",color:"#888"}}>Buscando: </dt><dd style={{display:"inline",color:"#22d3ee",margin:0,fontWeight:"700"}}>{myEntry.want.length}</dd></div>
                   <div><dt style={{display:"inline",color:"#888"}}>WhatsApp: </dt><dd style={{display:"inline",color:myEntry.phone?"#86efac":"#555",margin:0}}>{myEntry.phone?"✓ Sí":"No"}</dd></div>
                   <div><dt style={{display:"inline",color:"#888"}}>Ubicación: </dt><dd style={{display:"inline",color:myEntry.loc?"#86efac":"#555",margin:0}}>{myEntry.loc?"✓ Sí":"No"}</dd></div>
                   <div><dt style={{display:"inline",color:"#888"}}>Actualizado: </dt><dd style={{display:"inline",color:"#555",margin:0}}>{new Date(myEntry.updatedAt).toLocaleDateString()}</dd></div>
                 </dl>
+                <div style={{background:"#0d0d1a",borderRadius:"8px",padding:"12px 14px",border:"1px solid #3a3a55"}}>
+                  <p style={{color:"#888",fontSize:"12px",margin:"0 0 6px"}}>Tu código de perfil — úsalo para acceder desde otro dispositivo:</p>
+                  <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                    <code style={{color:"#818cf8",fontFamily:"'DM Mono',monospace",fontSize:"18px",fontWeight:"700",letterSpacing:"0.12em"}}>{shortCode(userUUID)}</code>
+                    <button onClick={()=>navigator.clipboard?.writeText(shortCode(userUUID))}
+                      aria-label="Copiar código de perfil"
+                      style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"6px",padding:"4px 10px",color:"#a0a0bc",fontSize:"12px",cursor:"pointer",fontFamily:"inherit"}}>
+                      Copiar
+                    </button>
+                  </div>
+                </div>
               </section>
             )}
           </div>
