@@ -534,6 +534,16 @@ export default function PaniniSwap() {
               style={{background:saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"13px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s"}}>
               {saved?"✓ Guardado":saving?"Guardando...":"Guardar"}
             </button>
+            <button
+              aria-label="Cerrar sesión"
+              onClick={()=>{
+                ["ps_user","ps_phone","ps_have","ps_want","ps_seen","ps_loc","ps_uuid"].forEach(k=>localStorage.removeItem(k));
+                window.location.reload();
+              }}
+              style={{background:"none",border:"2px solid #3a3a55",borderRadius:"8px",padding:"8px 10px",color:"#666",fontSize:"13px",cursor:"pointer",fontFamily:"inherit",title:"Cerrar sesión"}}
+              title="Cerrar sesión">
+              ↩
+            </button>
           </div>
         </header>
 
