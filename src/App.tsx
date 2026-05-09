@@ -344,7 +344,7 @@ function HamburgerMenu({
 }
 
 // ─── Sticker panel ────────────────────────────────────────────────────────────
-function StickerPanel({selected,onToggle,accent,labelPrefix}:{selected:string[];onToggle:(c:string)=>void;accent:string;labelPrefix:string}) {
+function StickerPanel({selected,onToggle,accent,labelPrefix,disabled}:{selected:string[];onToggle:(c:string)=>void;accent:string;labelPrefix:string;disabled?:string[]}) {
   const [activeSection,setActiveSection]=useState("FWC");
   const section=SECTIONS.find(s=>s.prefix===activeSection)??SECTIONS[0];
   const selCount=section.codes.filter(c=>(selected||[]).includes(c)).length;
@@ -383,11 +383,17 @@ function StickerPanel({selected,onToggle,accent,labelPrefix}:{selected:string[];
         {section.codes.map(code=>{
           const isSel=(selected||[]).includes(code);
           return (
-            <button key={code} onClick={()=>onToggle(code)} aria-pressed={isSel}
-              aria-label={`${code}${isSel?`, quitar de ${labelPrefix}s`:`, agregar a ${labelPrefix}s`}`}
-              style={{height:"46px",borderRadius:"8px",border:`2px solid ${isSel?accent:"#2a4a6b"}`,background:isSel?accent:"#0a1628",color:isSel?(isDark?"#0d0d1a":"#fff"):"#a0a0bc",fontFamily:"'DM Mono',monospace",fontSize:"12px",fontWeight:isSel?"700":"400",cursor:"pointer",transition:"transform 0.1s",transform:isSel?"scale(1.06)":"scale(1)"}}>
-              {code.replace(section.prefix,"")}
-            </button>
+            {(()=>{
+              const isDisabled=(disabled||[]).includes(code);
+              return (
+                <button key={code} onClick={()=>!isDisabled&&onToggle(code)} aria-pressed={isSel}
+                  aria-label={`${code}${isDisabled?", ya la tenés repetida":isSel?`, quitar de ${labelPrefix}s`:`, agregar a ${labelPrefix}s`}`}
+                  disabled={isDisabled}
+                  style={{height:"46px",borderRadius:"8px",border:`2px solid ${isDisabled?"#1a3050":isSel?accent:"#2a4a6b"}`,background:isDisabled?"#0a1628":isSel?accent:"#0a1628",color:isDisabled?"#2a4a6b":isSel?(isDark?"#0d0d1a":"#fff"):"#a0a0bc",fontFamily:"'DM Mono',monospace",fontSize:"12px",fontWeight:isSel?"700":"400",cursor:isDisabled?"not-allowed":"pointer",transition:"transform 0.1s",transform:isSel?"scale(1.06)":"scale(1)",opacity:isDisabled?0.35:1}}>
+                  {code.replace(section.prefix,"")}
+                </button>
+              );
+            })()}
           );
         })}
       </div>
@@ -797,10 +803,10 @@ export default function PaniniSwap() {
     setHave(p=>{
       const cur=p||[];
       if(cur.includes(c)) return cur.filter(x=>x!==c);
-      // Al agregar a repetidas, quitar de buscadas automáticamente
-      setWant(w=>(w||[]).filter(x=>x!==c));
       return [...cur,c];
     });
+    // Quitar de buscadas si se agrega a repetidas
+    setWant(w=>(w||[]).filter(x=>x!==c));
   },[]);
   const toggleWant=useCallback((c:string)=>setWant(p=>(p||[]).includes(c)?(p||[]).filter(x=>x!==c):[...(p||[]),c]),[]);
   const addToHave=useCallback((cs:string[])=>{
@@ -1074,7 +1080,7 @@ export default function PaniniSwap() {
           <div id="panel-want" role="tabpanel" aria-labelledby="tab-want" hidden={tab!=="want"}>
             <p style={{color:"#a0a0bc",fontSize:"14px",margin:"0 0 12px",lineHeight:"1.6"}}>Selecciona las figuras que te faltan. Otros las verán al hacer match contigo.</p>
             <RangeSelector onAdd={addToWant} accent="#22d3ee"/>
-            <StickerPanel selected={want} onToggle={toggleWant} accent="#22d3ee" labelPrefix="buscada"/>
+            <StickerPanel selected={want} onToggle={toggleWant} accent="#22d3ee" labelPrefix="buscada" disabled={have}/>
             <Footer tab="want"/>
           </div>
 
