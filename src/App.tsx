@@ -219,7 +219,7 @@ function HamburgerMenu({
 
   return (
     <div className="hb-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Menú de perfil">
-      <div className="hb-panel" onClick={e=>e.stopPropagation()}>
+      <div className="hb-panel" onClick={e=>e.stopPropagation()} style={{fontFamily:"'Bricolage Grotesque',sans-serif"}}>
 
         {/* Header del panel */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"24px"}}>
