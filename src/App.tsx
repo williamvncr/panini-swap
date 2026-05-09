@@ -477,18 +477,37 @@ export default function PaniniSwap() {
   const detectLocation=useCallback(()=>{
     if(!navigator.geolocation){setLocError("Tu navegador no soporta geolocalización.");return;}
     setLocLoading(true);setLocError("");
-    navigator.geolocation.getCurrentPosition(
-      pos=>{
-        const loc:Loc={lat:pos.coords.latitude,lon:pos.coords.longitude};
-        setUserLoc(loc);setLocLoading(false);lsSet("ps_loc",JSON.stringify(loc));
-      },
+
+    let settled=false;
+    let watchId:number;
+
+    const finish=(loc:Loc|null,err?:string)=>{
+      if(settled) return;
+      settled=true;
+      clearTimeout(safetyTimer);
+      navigator.geolocation.clearWatch(watchId);
+      setLocLoading(false);
+      if(loc){ setUserLoc(loc); lsSet("ps_loc",JSON.stringify(loc)); }
+      else if(err) setLocError(err);
+    };
+
+    // Chrome iOS ignora el timeout interno — usamos uno externo como seguro
+    const safetyTimer=setTimeout(()=>{
+      finish(null,"Tiempo agotado. Ve a Configuración > Chrome > Ubicación y asegúrate de que esté en Permitir.");
+    },15000);
+
+    // watchPosition es más fiable que getCurrentPosition en Chrome iOS
+    watchId=navigator.geolocation.watchPosition(
+      pos=>finish({lat:pos.coords.latitude,lon:pos.coords.longitude}),
       err=>{
-        setLocLoading(false);
-        if(err.code===1) setLocError("Permiso denegado. Actívalo en Configuración > Safari/Chrome > Ubicación.");
-        else if(err.code===2) setLocError("No se pudo determinar la ubicación. Intenta de nuevo.");
-        else setLocError("Tiempo de espera agotado. Intenta de nuevo.");
+        if(err.code===1)
+          finish(null,"Permiso denegado. Ve a Configuración > Chrome > Ubicación y selecciona Permitir.");
+        else if(err.code===2)
+          finish(null,"Ubicación no disponible. Asegúrate de tener señal o WiFi activo.");
+        else
+          finish(null,"No se pudo obtener la ubicación. Intenta de nuevo.");
       },
-      {enableHighAccuracy:false, timeout:10000, maximumAge:60000}
+      {enableHighAccuracy:false, maximumAge:60000}
     );
   },[]);
 
