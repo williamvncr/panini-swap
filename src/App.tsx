@@ -875,14 +875,7 @@ export default function PaniniSwap() {
       <main style={{minHeight:"100vh",background:"#0d0d1a",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bricolage Grotesque',sans-serif",padding:"24px"}}>
         <div style={{background:"#0d1f35",border:"2px solid #1a3050",borderRadius:"20px",padding:"48px 40px",maxWidth:"440px",width:"100%"}}>
           <div aria-hidden="true" style={{marginBottom:"12px",textAlign:"center"}}>
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 3h12v2l-1 1H7L6 5V3z" fill="#f59e0b"/>
-              <path d="M8 6h8c0 4-1.5 7-4 8.5C9.5 13 8 10 8 6z" fill="#f59e0b"/>
-              <path d="M9.5 14.5C10.2 15.8 11 16.5 12 17c1-.5 1.8-1.2 2.5-2.5" stroke="#f59e0b" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-              <rect x="10" y="17" width="4" height="1.5" rx="0.5" fill="#f59e0b"/>
-              <rect x="8.5" y="18.5" width="7" height="1.5" rx="0.75" fill="#f59e0b"/>
-              <rect x="9" y="20" width="6" height="1" rx="0.5" fill="#d97706"/>
-            </svg>
+            <img src="/worldCup.png" alt="" style={{width:"80px",height:"80px",objectFit:"contain"}}/>
           </div>
           <h1 style={{color:"#e8e8f0",margin:"0 0 4px",fontSize:"28px",fontWeight:"900",textAlign:"center"}}>Panini Swap</h1>
           <p style={{color:"#666",fontSize:"13px",margin:"0 0 28px",textAlign:"center"}}>FIFA World Cup 2026</p>
@@ -1044,14 +1037,7 @@ export default function PaniniSwap() {
         {/* ── Header limpio: logo | Guardar + hamburger ── */}
         <header style={{background:"#0d1f35",borderBottom:"2px solid #0a1628",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10,gap:"10px"}}>
           <span style={{fontSize:"17px",fontWeight:"900",whiteSpace:"nowrap" as const,flexShrink:0,display:"flex",alignItems:"center",gap:"6px"}}>
-            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 3h12v2l-1 1H7L6 5V3z" fill="#f59e0b"/>
-              <path d="M8 6h8c0 4-1.5 7-4 8.5C9.5 13 8 10 8 6z" fill="#f59e0b"/>
-              <path d="M9.5 14.5C10.2 15.8 11 16.5 12 17c1-.5 1.8-1.2 2.5-2.5" stroke="#f59e0b" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-              <rect x="10" y="17" width="4" height="1.5" rx="0.5" fill="#f59e0b"/>
-              <rect x="8.5" y="18.5" width="7" height="1.5" rx="0.75" fill="#f59e0b"/>
-              <rect x="9" y="20" width="6" height="1" rx="0.5" fill="#d97706"/>
-            </svg>
+            <img src="/worldCup.png" alt="" aria-hidden="true" style={{width:"26px",height:"26px",objectFit:"contain"}}/>
             Panini Swap
           </span>
 
