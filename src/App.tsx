@@ -477,10 +477,19 @@ export default function PaniniSwap() {
   const detectLocation=useCallback(()=>{
     if(!navigator.geolocation){setLocError("Tu navegador no soporta geolocalización.");return;}
     setLocLoading(true);setLocError("");
-    navigator.geolocation.getCurrentPosition(pos=>{
-      const loc:Loc={lat:pos.coords.latitude,lon:pos.coords.longitude};
-      setUserLoc(loc);setLocLoading(false);lsSet("ps_loc",JSON.stringify(loc));
-    },()=>{setLocLoading(false);setLocError("No se pudo obtener la ubicación. Verifica los permisos.");});
+    navigator.geolocation.getCurrentPosition(
+      pos=>{
+        const loc:Loc={lat:pos.coords.latitude,lon:pos.coords.longitude};
+        setUserLoc(loc);setLocLoading(false);lsSet("ps_loc",JSON.stringify(loc));
+      },
+      err=>{
+        setLocLoading(false);
+        if(err.code===1) setLocError("Permiso denegado. Actívalo en Configuración > Safari/Chrome > Ubicación.");
+        else if(err.code===2) setLocError("No se pudo determinar la ubicación. Intenta de nuevo.");
+        else setLocError("Tiempo de espera agotado. Intenta de nuevo.");
+      },
+      {enableHighAccuracy:false, timeout:10000, maximumAge:60000}
+    );
   },[]);
 
   const rawMatches:Match[]=allPlayers
