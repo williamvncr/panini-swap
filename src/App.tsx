@@ -568,6 +568,28 @@ export default function PaniniSwap() {
     }
   };
 
+  const handleActivateCode=async()=>{
+    try{
+      const ok=await validateAccessCode(userUUID);
+      if(!ok) return;
+      setShowAccessModal(false);
+      setAccessCode("");
+      setAccessError("");
+      // Small delay to let React flush state before saving
+      setTimeout(async()=>{
+        try{
+          await publishToFirebase(true);
+        }catch(e){
+          console.error("Error al guardar tras activar:",e);
+        }
+      },100);
+    }catch(e){
+      console.error("Error al activar código:",e);
+      setAccessError("Error inesperado. Intenta de nuevo.");
+      setAccessChecking(false);
+    }
+  };
+
   const saveProfile=()=>{
     if(!nameInput.trim()||!phoneInput.trim())return;
     lsSet("ps_user",nameInput.trim());lsSet("ps_phone",phoneInput.trim());
@@ -742,14 +764,14 @@ export default function PaniniSwap() {
             <input
               value={accessCode}
               onChange={e=>{setAccessCode(e.target.value.toUpperCase());setAccessError("");}}
-              onKeyDown={e=>e.key==="Enter"&&validateAccessCode(userUUID).then(ok=>{if(ok){setShowAccessModal(false);publishToFirebase(true);}})}
+              onKeyDown={e=>{if(e.key==="Enter") handleActivateCode();}}
               placeholder="Ej: SWAP-4X9K"
               autoFocus
               style={{width:"100%",background:"#0a1628",border:`2px solid ${accessError?"#f87171":"#2a4a6b"}`,borderRadius:"10px",padding:"14px 16px",color:"#e8e8f0",fontFamily:"'DM Mono',monospace",fontSize:"16px",outline:"none",boxSizing:"border-box" as const,letterSpacing:"0.08em",marginBottom:"8px"}}
             />
             {accessError&&<p role="alert" style={{color:"#f87171",fontSize:"13px",margin:"0 0 12px"}}>{accessError}</p>}
             <button
-              onClick={()=>validateAccessCode(userUUID).then(ok=>{if(ok){setShowAccessModal(false);publishToFirebase(true);}})}
+              onClick={handleActivateCode}
               disabled={!accessCode.trim()||accessChecking}
               style={{width:"100%",background:accessCode.trim()&&!accessChecking?"#e03c2d":"#1a3050",border:"2px solid transparent",borderRadius:"10px",padding:"13px",color:accessCode.trim()&&!accessChecking?"#fff":"#666",fontFamily:"inherit",fontSize:"15px",fontWeight:"700",cursor:accessCode.trim()&&!accessChecking?"pointer":"not-allowed",marginBottom:"10px"}}>
               {accessChecking?"Verificando...":"Activar acceso →"}
