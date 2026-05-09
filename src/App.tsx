@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 // @ts-ignore
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 // @ts-ignore
-import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCWcm56cTrPU2sLJhuNa9pWekCEc6hDiWI",
@@ -427,10 +427,14 @@ function MatchCard({match,myName}:{match:Match;myName:string}) {
 export default function PaniniSwap() {
   const [view,setView]               = useState<"setup"|"main"|"restore">("setup");
   const [nameInput,setNameInput]     = useState("");
+  const [accessCode,setAccessCode]   = useState("");
+  const [accessError,setAccessError] = useState("");
+  const [accessChecking,setAccessChecking] = useState(false);
   const [phoneInput,setPhoneInput]   = useState("");
   const [restoreCode,setRestoreCode] = useState("");
   const [restoreError,setRestoreError] = useState("");
   const [userUUID,setUserUUID]       = useState("");
+  const [accessGranted,setAccessGranted] = useState(false);
   const [userName,setUserName]       = useState("");
   const [userPhone,setUserPhone]     = useState("");
   const [userLoc,setUserLoc]         = useState<Loc|null>(null);
@@ -455,6 +459,7 @@ export default function PaniniSwap() {
     setUserUUID(uuid);
     const u=lsGet("ps_user"),ph=lsGet("ps_phone"),h=lsGet("ps_have"),w=lsGet("ps_want"),s=lsGet("ps_seen"),l=lsGet("ps_loc");
     if(u){setUserName(u);setView("main");}
+    if(lsGet("ps_access")==="1")setAccessGranted(true);
     if(ph)setUserPhone(ph);
     if(h)setHave(JSON.parse(h));
     if(w)setWant(JSON.parse(w));
@@ -482,6 +487,13 @@ export default function PaniniSwap() {
       (pos)=>{
         const loc:Loc={lat:pos.coords.latitude,lon:pos.coords.longitude};
         setUserLoc(loc);setLocLoading(false);lsSet("ps_loc",JSON.stringify(loc));
+        // Publicar inmediatamente a Firebase con la nueva ubicación
+        if(userName){
+          const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have,want,loc,updatedAt:Date.now()};
+          setDoc(doc(db,"players",userUUID),entry).catch(console.error);
+          lsSet("ps_have",JSON.stringify(have));lsSet("ps_want",JSON.stringify(want));
+          setSaved(true);setTimeout(()=>setSaved(false),3000);
+        }
       },
       ()=>{setLocLoading(false);setLocError("GPS no disponible. Usa la búsqueda manual.");},
       {enableHighAccuracy:false,timeout:8000,maximumAge:300000}
@@ -498,6 +510,13 @@ export default function PaniniSwap() {
       const loc:Loc={lat:parseFloat(data[0].lat),lon:parseFloat(data[0].lon)};
       setUserLoc(loc);lsSet("ps_loc",JSON.stringify(loc));
       setLocQuery("");
+      // Publicar inmediatamente a Firebase con la nueva ubicación
+      if(userName){
+        const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have,want,loc,updatedAt:Date.now()};
+        setDoc(doc(db,"players",userUUID),entry).catch(console.error);
+        lsSet("ps_have",JSON.stringify(have));lsSet("ps_want",JSON.stringify(want));
+        setSaved(true);setTimeout(()=>setSaved(false),3000);
+      }
     }catch{setLocError("Error al buscar. Verifica tu conexión.");}
     setLocLoading(false);
   };
@@ -521,8 +540,33 @@ export default function PaniniSwap() {
     setSeenMatches(upd);lsSet("ps_seen",JSON.stringify([...upd]));
   },[allPlayers,have,want,appLoading,userName]);
 
-  const saveProfile=()=>{
+  const validateAccessCode=async(uuid:string)=>{
+    const code=accessCode.trim().toUpperCase();
+    if(!code){setAccessError("Ingresa un código de acceso.");return false;}
+    setAccessChecking(true);setAccessError("");
+    try{
+      const ref=doc(db,"access_codes",code);
+      const snap=await getDoc(ref);
+      if(!snap.exists()){setAccessError("Código inválido. Verifica e intenta de nuevo.");setAccessChecking(false);return false;}
+      const data=snap.data();
+      if(data.used){setAccessError("Este código ya fue utilizado.");setAccessChecking(false);return false;}
+      await updateDoc(ref,{used:true,usedBy:uuid,usedAt:Date.now()});
+      setAccessGranted(true);
+      lsSet("ps_access","1");
+      setAccessChecking(false);
+      return true;
+    }catch{
+      setAccessError("Error al validar. Verifica tu conexión.");
+      setAccessChecking(false);
+      return false;
+    }
+  };
+
+  const saveProfile=async()=>{
     if(!nameInput.trim())return;
+    const uuid=userUUID||getOrCreateUUID();
+    const ok=await validateAccessCode(uuid);
+    if(!ok)return;
     lsSet("ps_user",nameInput.trim());lsSet("ps_phone",phoneInput.trim());
     setUserName(nameInput.trim());setUserPhone(phoneInput.trim());setView("main");
   };
@@ -614,9 +658,21 @@ export default function PaniniSwap() {
               <p style={{color:"#666",fontSize:"12px",margin:"6px 0 0",lineHeight:"1.5"}}>Con código de país. Solo visible para tus matches.</p>
             </div>
           </div>
-          <button onClick={saveProfile} disabled={!nameInput.trim()} aria-disabled={!nameInput.trim()}
-            style={{width:"100%",marginTop:"20px",background:nameInput.trim()?"#6366f1":"#2a2a3d",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:nameInput.trim()?"#fff":"#666",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:nameInput.trim()?"pointer":"not-allowed",transition:"all 0.2s"}}>
-            Crear perfil →
+          <div style={{marginTop:"14px"}}>
+            <label htmlFor="setup-code" style={{display:"block",color:"#e8e8f0",fontSize:"14px",fontWeight:"700",marginBottom:"6px"}}>
+              Código de acceso <span aria-hidden="true" style={{color:"#f87171"}}>*</span>
+            </label>
+            <input id="setup-code" value={accessCode} onChange={e=>{setAccessCode(e.target.value.toUpperCase());setAccessError("");}}
+              onKeyDown={e=>e.key==="Enter"&&saveProfile()}
+              placeholder="Ej: SWAP-4X9K"
+              style={{...inp,fontFamily:"'DM Mono',monospace",letterSpacing:"0.08em"}}/>
+            <p style={{color:"#666",fontSize:"12px",margin:"6px 0 0",lineHeight:"1.5"}}>Recibiste este código al registrar tu pago.</p>
+            {accessError&&<p role="alert" style={{color:"#f87171",fontSize:"13px",margin:"6px 0 0"}}>{accessError}</p>}
+          </div>
+
+          <button onClick={saveProfile} disabled={!nameInput.trim()||!accessCode.trim()||accessChecking} aria-disabled={!nameInput.trim()||!accessCode.trim()}
+            style={{width:"100%",marginTop:"20px",background:(nameInput.trim()&&accessCode.trim()&&!accessChecking)?"#6366f1":"#2a2a3d",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:(nameInput.trim()&&accessCode.trim()&&!accessChecking)?"#fff":"#666",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:(nameInput.trim()&&accessCode.trim()&&!accessChecking)?"pointer":"not-allowed",transition:"all 0.2s"}}>
+            {accessChecking?"Verificando...":"Crear perfil →"}
           </button>
           <div style={{marginTop:"20px",paddingTop:"20px",borderTop:"1px solid #2a2a3d",textAlign:"center"}}>
             <p style={{color:"#666",fontSize:"13px",margin:"0 0 10px"}}>¿Ya tienes un perfil en otro dispositivo?</p>
@@ -697,10 +753,10 @@ export default function PaniniSwap() {
           </span>
 
           <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
-            <button onClick={publishToFirebase} disabled={saving}
+            <button onClick={accessGranted?publishToFirebase:()=>alert("Necesitas un código de acceso para guardar tu perfil.")} disabled={saving}
               aria-label={saved?"Cambios guardados":saving?"Guardando cambios":"Guardar cambios"}
-              style={{background:saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"14px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s",whiteSpace:"nowrap" as const}}>
-              {saved?"✓ Guardado":saving?"Guardando...":"Guardar"}
+              style={{background:!accessGranted?"#2a2a3d":saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:!accessGranted?"#666":saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"14px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s",whiteSpace:"nowrap" as const}}>
+              {!accessGranted?"🔒 Guardar":saved?"✓ Guardado":saving?"Guardando...":"Guardar"}
             </button>
 
             {/* Botón hamburger */}
@@ -762,6 +818,23 @@ export default function PaniniSwap() {
 
           {/* Panel: Matches */}
           <div id="panel-match" role="tabpanel" aria-labelledby="tab-match" hidden={tab!=="match"}>
+            {!accessGranted&&(
+              <div style={{textAlign:"center",padding:"48px 24px",background:"#13131f",borderRadius:"12px",border:"2px solid #2a2a3d"}}>
+                <div aria-hidden="true" style={{fontSize:"40px",marginBottom:"12px"}}>🔒</div>
+                <h2 style={{color:"#e8e8f0",fontSize:"18px",fontWeight:"900",margin:"0 0 8px"}}>Acceso requerido</h2>
+                <p style={{color:"#a0a0bc",fontSize:"14px",lineHeight:"1.6",margin:"0 0 20px"}}>
+                  Para ver los matches y conectar con otros coleccionistas necesitas un código de acceso.<br/>
+                  Escríbenos por WhatsApp para obtener el tuyo.
+                </p>
+                <a href="https://wa.me/TUNUMERO?text=Hola%2C%20quiero%20un%20c%C3%B3digo%20para%20Panini%20Swap%20%E2%9A%BD"
+                  target="_blank" rel="noopener noreferrer"
+                  style={{display:"inline-flex",alignItems:"center",gap:"8px",background:"#25d366",borderRadius:"10px",padding:"12px 24px",color:"#fff",fontWeight:"700",fontSize:"15px",textDecoration:"none",fontFamily:"inherit"}}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                  Obtener código por WhatsApp
+                </a>
+              </div>
+            )}
+            {accessGranted&&<>
             <section aria-label="Mi ubicación" style={{background:"#13131f",border:"2px solid #1e1e2e",borderRadius:"12px",padding:"16px",marginBottom:"16px"}}>
               <h2 style={{color:"#e8e8f0",fontWeight:"700",fontSize:"15px",margin:"0 0 4px"}}><span aria-hidden="true">📍</span> Mi ubicación</h2>
               {userLoc
@@ -776,7 +849,14 @@ export default function PaniniSwap() {
                   {locLoading?"Detectando...":userLoc?"✓ GPS activo":"📡 Usar GPS"}
                 </button>
                 {userLoc&&(
-                  <button onClick={()=>{setUserLoc(null);lsSet("ps_loc","");}}
+                  <button onClick={()=>{
+                      setUserLoc(null);
+                      localStorage.removeItem("ps_loc");
+                      if(userName){
+                        const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have,want,updatedAt:Date.now()};
+                        setDoc(doc(db,"players",userUUID),entry).catch(console.error);
+                      }
+                    }}
                     style={{background:"none",border:"2px solid #3a3a55",borderRadius:"8px",padding:"9px 14px",color:"#888",fontFamily:"inherit",fontSize:"13px",cursor:"pointer"}}>
                     Quitar
                   </button>
@@ -855,6 +935,7 @@ export default function PaniniSwap() {
                 </dl>
               </section>
             )}
+            </>}
           </div>
         </main>
       </div>
