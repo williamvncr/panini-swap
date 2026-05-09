@@ -425,6 +425,100 @@ function MatchCard({match,myName}:{match:Match;myName:string}) {
   );
 }
 
+
+// ─── Footer ───────────────────────────────────────────────────────────────────
+function Footer({tab}:{tab:"have"|"want"|"match"}) {
+  const [showTerms,setShowTerms] = useState(false);
+
+  const instructions:{[k:string]:{icon:string;title:string;steps:string[]}} = {
+    have:{
+      icon:"📤",
+      title:"¿Cómo registro mis repetidas?",
+      steps:[
+        "Selecciona el país en la barra de banderas.",
+        "Toca cada número que tengas repetido — se ilumina en naranja.",
+        "También puedes escribir rangos como ARG1-5, BRA7 en el campo de texto.",
+        "Cuando termines, presiona Guardar en la parte de arriba.",
+      ]
+    },
+    want:{
+      icon:"📥",
+      title:"¿Cómo registro las que me faltan?",
+      steps:[
+        "Selecciona el país y toca las figuras que te faltan — se iluminan en celeste.",
+        "Puedes usar rangos también: MEX1-10, FWC3.",
+        "Entre más completa tu lista, más matches vas a encontrar.",
+        "Recuerda guardar cuando termines.",
+      ]
+    },
+    match:{
+      icon:"🤝",
+      title:"¿Cómo funciona el sistema de matches?",
+      steps:[
+        "Un match aparece cuando alguien tiene repetidas que vos buscás, o viceversa.",
+        "Toca 'Ver detalle' para ver exactamente qué figuras pueden intercambiar.",
+        "Si el coleccionista registró WhatsApp, podés contactarlo directo desde la app.",
+        "Activá tu ubicación para ver qué tan cerca están los coleccionistas.",
+      ]
+    }
+  };
+
+  const info = instructions[tab];
+
+  return (
+    <footer style={{marginTop:"40px",borderTop:"2px solid #1a3050",paddingTop:"24px"}}>
+
+      {/* Instrucciones */}
+      <div style={{background:"#0d1f35",borderRadius:"12px",padding:"16px",marginBottom:"16px",border:"1px solid #1a3050"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px"}}>
+          <span aria-hidden="true" style={{fontSize:"18px"}}>{info.icon}</span>
+          <h3 style={{color:"#e8e8f0",fontWeight:"700",fontSize:"14px",margin:0}}>{info.title}</h3>
+        </div>
+        <ol style={{margin:0,paddingLeft:"20px",display:"flex",flexDirection:"column",gap:"6px"}}>
+          {info.steps.map((step,i)=>(
+            <li key={i} style={{color:"#a0a0bc",fontSize:"13px",lineHeight:"1.6"}}>{step}</li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Términos */}
+      <div style={{background:"#0d1f35",borderRadius:"12px",padding:"16px",border:"1px solid #1a3050"}}>
+        <button
+          onClick={()=>setShowTerms(!showTerms)}
+          aria-expanded={showTerms}
+          style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
+          <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+            <span aria-hidden="true" style={{fontSize:"16px"}}>📋</span>
+            <span style={{color:"#e8e8f0",fontWeight:"700",fontSize:"14px"}}>Términos de uso</span>
+          </div>
+          <span style={{color:"#a0a0bc",fontSize:"12px"}}>{showTerms?"Cerrar ▲":"Ver ▼"}</span>
+        </button>
+
+        {showTerms&&(
+          <div style={{marginTop:"14px",display:"flex",flexDirection:"column",gap:"10px"}}>
+            {[
+              {icon:"⚽", text:"Panini Swap es una plataforma para conectar coleccionistas del álbum FIFA World Cup 2026. Su único propósito es facilitar el intercambio de figuritas entre personas."},
+              {icon:"🤝", text:"Los intercambios son acuerdos directos entre usuarios. No somos intermediarios ni participamos en la coordinación, entrega ni verificación de ningún canje."},
+              {icon:"💬", text:"La comunicación entre usuarios por WhatsApp u otros medios es responsabilidad exclusiva de cada persona. Panini Swap no monitorea ni garantiza esas conversaciones."},
+              {icon:"🔒", text:"Tu número de WhatsApp solo es visible para los coleccionistas con quienes tienes un match. No lo compartimos con terceros ni lo usamos para fines comerciales."},
+              {icon:"⚠️", text:"No nos hacemos responsables por intercambios que no se concreten, acuerdos incumplidos, o cualquier situación que surja entre usuarios fuera de esta plataforma."},
+              {icon:"✅", text:"Al usar Panini Swap aceptás estos términos. Si tenés alguna consulta, escribinos al WhatsApp 50660582201."},
+            ].map(({icon,text},i)=>(
+              <div key={i} style={{display:"flex",gap:"10px",alignItems:"flex-start"}}>
+                <span aria-hidden="true" style={{fontSize:"15px",flexShrink:0,marginTop:"1px"}}>{icon}</span>
+                <p style={{color:"#a0a0bc",fontSize:"13px",lineHeight:"1.6",margin:0}}>{text}</p>
+              </div>
+            ))}
+            <p style={{color:"#555",fontSize:"11px",margin:"6px 0 0",textAlign:"center"}}>
+              Panini Swap · Costa Rica · 2026
+            </p>
+          </div>
+        )}
+      </div>
+    </footer>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function PaniniSwap() {
   const [view,setView]               = useState<"setup"|"main"|"restore">("setup");
@@ -872,6 +966,7 @@ export default function PaniniSwap() {
             <p style={{color:"#a0a0bc",fontSize:"14px",margin:"0 0 12px",lineHeight:"1.6"}}>Selecciona por país las figuras que tienes repetidas, o escribe rangos como <code style={{color:"#f59e0b",background:"#f59e0b11",padding:"1px 6px",borderRadius:"4px"}}>ARG1-5, BRA7</code></p>
             <RangeSelector onAdd={addToHave} accent="#f59e0b"/>
             <StickerPanel selected={have} onToggle={toggleHave} accent="#f59e0b" labelPrefix="repetida"/>
+            <Footer tab="have"/>
           </div>
 
           {/* Panel: Las que Busco */}
@@ -879,6 +974,7 @@ export default function PaniniSwap() {
             <p style={{color:"#a0a0bc",fontSize:"14px",margin:"0 0 12px",lineHeight:"1.6"}}>Selecciona las figuras que te faltan. Otros las verán al hacer match contigo.</p>
             <RangeSelector onAdd={addToWant} accent="#22d3ee"/>
             <StickerPanel selected={want} onToggle={toggleWant} accent="#22d3ee" labelPrefix="buscada"/>
+            <Footer tab="want"/>
           </div>
 
           {/* Panel: Matches */}
@@ -1013,6 +1109,7 @@ export default function PaniniSwap() {
                 )}
               </section>
             )}
+              <Footer tab="match"/>
             </>}
           </div>
         </main>
