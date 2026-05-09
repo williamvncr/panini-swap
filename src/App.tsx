@@ -347,7 +347,7 @@ function HamburgerMenu({
 function StickerPanel({selected,onToggle,accent,labelPrefix}:{selected:string[];onToggle:(c:string)=>void;accent:string;labelPrefix:string}) {
   const [activeSection,setActiveSection]=useState("FWC");
   const section=SECTIONS.find(s=>s.prefix===activeSection)??SECTIONS[0];
-  const selCount=section.codes.filter(c=>selected.includes(c)).length;
+  const selCount=section.codes.filter(c=>(selected||[]).includes(c)).length;
   const isDark=accent==="#f59e0b";
   return (
     <div>
@@ -381,7 +381,7 @@ function StickerPanel({selected,onToggle,accent,labelPrefix}:{selected:string[];
       </div>
       <div role="group" aria-label={`Figuras de ${section.label}`} className="sticker-grid">
         {section.codes.map(code=>{
-          const isSel=selected.includes(code);
+          const isSel=(selected||[]).includes(code);
           return (
             <button key={code} onClick={()=>onToggle(code)} aria-pressed={isSel}
               aria-label={`${code}${isSel?`, quitar de ${labelPrefix}s`:`, agregar a ${labelPrefix}s`}`}
@@ -648,9 +648,9 @@ export default function PaniniSwap() {
         setUserLoc(loc);setLocLoading(false);lsSet("ps_loc",JSON.stringify(loc));
         // Publicar inmediatamente a Firebase con la nueva ubicación
         if(userName){
-          const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have,want,loc,updatedAt:Date.now()};
+          const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have:have||[],want:want||[],loc,updatedAt:Date.now()};
           setDoc(doc(db,"players",userUUID),entry).catch(console.error);
-          lsSet("ps_have",JSON.stringify(have));lsSet("ps_want",JSON.stringify(want));
+          lsSet("ps_have",JSON.stringify(have||[]));lsSet("ps_want",JSON.stringify(want||[]));
           setSaved(true);setTimeout(()=>setSaved(false),3000);
         }
       },
@@ -680,9 +680,9 @@ export default function PaniniSwap() {
     setLocLoading(false);
   };
 
-  const rawMatches:Match[]=allPlayers
+  const rawMatches:Match[]=(allPlayers||[])
     .filter(p=>p.uuid!==userUUID)
-    .map(p=>({...p,canGive:p.have.filter(c=>want.includes(c)),canReceive:have.filter(c=>p.want.includes(c)),distKm:(userLoc&&p.loc)?haversineKm(userLoc.lat,userLoc.lon,p.loc.lat,p.loc.lon):null,score:0,isNew:!seenMatches.has(p.name)}))
+    .map(p=>({...p,canGive:(p.have||[]).filter(c=>(want||[]).includes(c)),canReceive:(have||[]).filter(c=>(p.want||[]).includes(c)),distKm:(userLoc&&p.loc)?haversineKm(userLoc.lat,userLoc.lon,p.loc.lat,p.loc.lon):null,score:0,isNew:!seenMatches.has(p.name)}))
     .map(p=>({...p,score:p.canGive.length+p.canReceive.length}))
     .filter(m=>m.score>0);
 
@@ -692,10 +692,10 @@ export default function PaniniSwap() {
 
   useEffect(()=>{
     if(appLoading||view!=="main"||!userName)return;
-    const newOnes=rawMatches.filter(m=>!seenMatches.has(m.name));
+    const newOnes=rawMatches.filter(m=>!(seenMatches||new Set()).has(m.name));
     if(!newOnes.length)return;
     setToasts(prev=>[...prev,...newOnes.map(m=>`${m.name}${m.distKm!=null?` (a ${fmtDist(m.distKm)})`:""}  tiene ${m.canGive.length} figura${m.canGive.length!==1?"s":""} que buscas.`)]);
-    const upd=new Set([...seenMatches,...newOnes.map(m=>m.name)]);
+    const upd=new Set([...(seenMatches||new Set()),...newOnes.map(m=>m.name)]);
     setSeenMatches(upd);lsSet("ps_seen",JSON.stringify([...upd]));
   },[allPlayers,have,want,appLoading,userName]);
 
@@ -764,7 +764,7 @@ export default function PaniniSwap() {
     if(!userName||saving)return;
     setSaving(true);
     const isPaid=forcePaid||accessGranted||undefined;
-    const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have,want,updatedAt:Date.now(),paid:isPaid||undefined};
+    const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have:have||[],want:want||[],updatedAt:Date.now(),paid:isPaid||undefined};
     if(userLoc)entry.loc=userLoc;
     try{
       await setDoc(doc(db,"players",userUUID),entry);
