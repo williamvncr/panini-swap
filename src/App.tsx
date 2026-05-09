@@ -710,9 +710,24 @@ export default function PaniniSwap() {
       const data=snap.data();
       if(data.used){setAccessError("Este código ya fue utilizado.");setAccessChecking(false);return false;}
       await updateDoc(ref,{used:true,usedBy:uuid,usedAt:Date.now()});
-      // Marcar al jugador como pagado en Firebase (merge para no sobreescribir)
+      // Escribir paid:true — si el doc no existe lo crea, si existe lo actualiza
       const playerRef=doc(db,"players",uuid);
-      await setDoc(playerRef,{paid:true},{ merge:true });
+      const playerSnap=await getDoc(playerRef);
+      if(playerSnap.exists()){
+        // Doc existe — solo actualizar paid
+        await updateDoc(playerRef,{paid:true});
+      } else {
+        // Doc no existe aún — crear con datos mínimos
+        await setDoc(playerRef,{
+          uuid,
+          name:lsGet("ps_user")||"",
+          phone:lsGet("ps_phone")||"",
+          have:[],
+          want:[],
+          paid:true,
+          updatedAt:Date.now()
+        });
+      }
       setAccessGranted(true);
       lsSet("ps_access","1");
       setAccessChecking(false);
