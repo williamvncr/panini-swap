@@ -242,7 +242,10 @@ function FeedbackSection({userName}:{userName:string}) {
         </div>
       ) : (
         <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+          <label htmlFor="feedback-textarea" style={{position:"absolute",width:"1px",height:"1px",overflow:"hidden",clip:"rect(0,0,0,0)",whiteSpace:"nowrap"}}>Tu recomendación</label>
           <textarea
+            id="feedback-textarea"
+            name="feedback"
             value={text}
             onChange={e=>setText(e.target.value)}
             placeholder="Ej: Sería bueno poder buscar por nombre de jugador..."
@@ -437,8 +440,8 @@ function RangeSelector({onAdd,accent}:{onAdd:(codes:string[])=>void;accent:strin
   return (
     <div style={{marginBottom:"14px"}}>
       <div style={{display:"flex",gap:"8px"}}>
-        <label htmlFor="range-input" style={{position:"absolute",width:"1px",height:"1px",overflow:"hidden",clip:"rect(0,0,0,0)",whiteSpace:"nowrap" as const}}>Agregar figuras por rango</label>
-        <input id="range-input" value={val} onChange={e=>{setVal(e.target.value);setError("");}}
+        <label htmlFor={`range-input-${accent}`} style={{position:"absolute",width:"1px",height:"1px",overflow:"hidden",clip:"rect(0,0,0,0)",whiteSpace:"nowrap" as const}}>Agregar figuras por rango</label>
+        <input id={`range-input-${accent}`} value={val} onChange={e=>{setVal(e.target.value);setError("");}}
           onKeyDown={e=>e.key==="Enter"&&apply()} placeholder="ej: ARG1-5, BRA7, MEX1-3"
           aria-describedby={error?"range-error":undefined} aria-invalid={!!error}
           style={{flex:1,background:"#0a1628",border:`2px solid ${error?"#f87171":"#2a4a6b"}`,borderRadius:"8px",padding:"9px 12px",color:"#e8e8f0",fontFamily:"'DM Mono',monospace",fontSize:"13px",outline:"none"}}/>
@@ -993,7 +996,10 @@ export default function PaniniSwap() {
                 <p style={{color:"#a0a0bc",fontSize:"14px",textAlign:"center",lineHeight:"1.6",margin:"0 0 20px"}}>
                   Para guardar tu perfil y conectar con otros coleccionistas necesitas un código de acceso.
                 </p>
+                <label htmlFor="access-code-input" style={{position:"absolute",width:"1px",height:"1px",overflow:"hidden",clip:"rect(0,0,0,0)",whiteSpace:"nowrap"}}>Código de acceso</label>
                 <input
+                  id="access-code-input"
+                  name="access-code"
                   value={accessCode}
                   onChange={e=>{setAccessCode(e.target.value.toUpperCase());setAccessError("");}}
                   onKeyDown={e=>{if(e.key==="Enter") handleActivateCode();}}
@@ -1190,7 +1196,10 @@ export default function PaniniSwap() {
 
               {/* Búsqueda manual — fallback para Chrome iOS */}
               <div style={{display:"flex",gap:"8px"}}>
+                <label htmlFor="loc-search-input" style={{position:"absolute",width:"1px",height:"1px",overflow:"hidden",clip:"rect(0,0,0,0)",whiteSpace:"nowrap"}}>Buscar ciudad</label>
                 <input
+                  id="loc-search-input"
+                  name="location-search"
                   value={locQuery}
                   onChange={e=>setLocQuery(e.target.value)}
                   onKeyDown={e=>e.key==="Enter"&&searchLocation()}
