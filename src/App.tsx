@@ -436,6 +436,7 @@ export default function PaniniSwap() {
   const [userLoc,setUserLoc]         = useState<Loc|null>(null);
   const [locLoading,setLocLoading]   = useState(false);
   const [locError,setLocError]       = useState("");
+  const [locQuery,setLocQuery]       = useState("");
   const [tab,setTab]                 = useState<"have"|"want"|"match">("have");
   const [have,setHave]               = useState<string[]>([]);
   const [want,setWant]               = useState<string[]>([]);
@@ -475,25 +476,30 @@ export default function PaniniSwap() {
   },[menuOpen]);
 
   const detectLocation=()=>{
-    if(!navigator.geolocation){
-      setLocError("Tu navegador no soporta geolocalización.");
-      return;
-    }
-    setLocLoading(true);
-    setLocError("");
+    if(!navigator.geolocation){setLocError("Tu navegador no soporta geolocalización.");return;}
+    setLocLoading(true);setLocError("");
     navigator.geolocation.getCurrentPosition(
       (pos)=>{
         const loc:Loc={lat:pos.coords.latitude,lon:pos.coords.longitude};
-        setUserLoc(loc);
-        setLocLoading(false);
-        lsSet("ps_loc",JSON.stringify(loc));
+        setUserLoc(loc);setLocLoading(false);lsSet("ps_loc",JSON.stringify(loc));
       },
-      (err)=>{
-        setLocLoading(false);
-        setLocError(`Error ${err.code}: ${err.message || "No se pudo obtener la ubicación."}`);
-      },
-      {enableHighAccuracy:false, timeout:20000, maximumAge:300000}
+      ()=>{setLocLoading(false);setLocError("GPS no disponible. Usa la búsqueda manual.");},
+      {enableHighAccuracy:false,timeout:8000,maximumAge:300000}
     );
+  };
+
+  const searchLocation=async()=>{
+    if(!locQuery.trim())return;
+    setLocLoading(true);setLocError("");
+    try{
+      const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locQuery)}&format=json&limit=1`,{headers:{"Accept-Language":"es"}});
+      const data=await res.json();
+      if(!data.length){setLocError("No se encontró esa ciudad. Intenta con otro nombre.");setLocLoading(false);return;}
+      const loc:Loc={lat:parseFloat(data[0].lat),lon:parseFloat(data[0].lon)};
+      setUserLoc(loc);lsSet("ps_loc",JSON.stringify(loc));
+      setLocQuery("");
+    }catch{setLocError("Error al buscar. Verifica tu conexión.");}
+    setLocLoading(false);
   };
 
   const rawMatches:Match[]=allPlayers
@@ -757,17 +763,42 @@ export default function PaniniSwap() {
           {/* Panel: Matches */}
           <div id="panel-match" role="tabpanel" aria-labelledby="tab-match" hidden={tab!=="match"}>
             <section aria-label="Mi ubicación" style={{background:"#13131f",border:"2px solid #1e1e2e",borderRadius:"12px",padding:"16px",marginBottom:"16px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap" as const,gap:"10px"}}>
-                <div>
-                  <h2 style={{color:"#e8e8f0",fontWeight:"700",fontSize:"15px",margin:"0 0 4px"}}><span aria-hidden="true">📍</span> Mi ubicación</h2>
-                  <p style={{color:userLoc?"#22d3ee":"#888",fontSize:"13px",margin:0}}>{userLoc?"Ubicación registrada — los matches muestran distancia":"Actívala para ver qué tan lejos están los coleccionistas"}</p>
-                  {locError&&<p role="alert" style={{color:"#f87171",fontSize:"13px",margin:"4px 0 0"}}>{locError}</p>}
-                </div>
-                <button onClick={detectLocation} disabled={locLoading} aria-label={locLoading?"Detectando ubicación":userLoc?"Actualizar mi ubicación":"Detectar mi ubicación"}
+              <h2 style={{color:"#e8e8f0",fontWeight:"700",fontSize:"15px",margin:"0 0 4px"}}><span aria-hidden="true">📍</span> Mi ubicación</h2>
+              {userLoc
+                ?<p style={{color:"#22d3ee",fontSize:"13px",margin:"0 0 12px"}}>Ubicación registrada — los matches muestran distancia</p>
+                :<p style={{color:"#888",fontSize:"13px",margin:"0 0 12px"}}>Registra tu ubicación para ver qué tan lejos están los coleccionistas</p>
+              }
+
+              {/* Botón GPS */}
+              <div style={{display:"flex",gap:"8px",marginBottom:"10px",flexWrap:"wrap" as const}}>
+                <button onClick={detectLocation} disabled={locLoading}
                   style={{background:userLoc?"#1a2e1a":"#166534",border:`2px solid ${userLoc?"#22d3ee66":"#22d3ee"}`,borderRadius:"8px",padding:"9px 16px",color:userLoc?"#86efac":"#fff",fontFamily:"inherit",fontWeight:"700",fontSize:"13px",cursor:locLoading?"default":"pointer",whiteSpace:"nowrap" as const}}>
-                  {locLoading?"Detectando...":userLoc?"✓ Actualizar":"Detectar ubicación"}
+                  {locLoading?"Detectando...":userLoc?"✓ GPS activo":"📡 Usar GPS"}
+                </button>
+                {userLoc&&(
+                  <button onClick={()=>{setUserLoc(null);lsSet("ps_loc","");}}
+                    style={{background:"none",border:"2px solid #3a3a55",borderRadius:"8px",padding:"9px 14px",color:"#888",fontFamily:"inherit",fontSize:"13px",cursor:"pointer"}}>
+                    Quitar
+                  </button>
+                )}
+              </div>
+
+              {/* Búsqueda manual — fallback para Chrome iOS */}
+              <div style={{display:"flex",gap:"8px"}}>
+                <input
+                  value={locQuery}
+                  onChange={e=>setLocQuery(e.target.value)}
+                  onKeyDown={e=>e.key==="Enter"&&searchLocation()}
+                  placeholder="O escribe tu ciudad: San José, CR"
+                  style={{flex:1,background:"#1e1e35",border:"2px solid #3a3a55",borderRadius:"8px",padding:"9px 12px",color:"#e8e8f0",fontFamily:"inherit",fontSize:"13px",outline:"none"}}
+                />
+                <button onClick={searchLocation} disabled={locLoading||!locQuery.trim()}
+                  style={{background:"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"9px 14px",color:"#fff",fontFamily:"inherit",fontWeight:"700",fontSize:"13px",cursor:"pointer",whiteSpace:"nowrap" as const}}>
+                  Buscar
                 </button>
               </div>
+
+              {locError&&<p role="alert" style={{color:"#f87171",fontSize:"13px",margin:"8px 0 0"}}>{locError}</p>}
             </section>
 
             {rawMatches.length>0&&(
