@@ -728,29 +728,41 @@ export default function PaniniSwap() {
     if(!code){setAccessError("Ingresa un código de acceso.");return false;}
     setAccessChecking(true);setAccessError("");
     try{
+      // 1. Verificar código
       const ref=doc(db,"access_codes",code);
       const snap=await getDoc(ref);
       if(!snap.exists()){setAccessError("Código inválido. Verifica e intenta de nuevo.");setAccessChecking(false);return false;}
       const data=snap.data();
       if(data.used){setAccessError("Este código ya fue utilizado.");setAccessChecking(false);return false;}
+
+      // 2. Marcar código como usado
       await updateDoc(ref,{used:true,usedBy:uuid,usedAt:Date.now()});
-      // Escribir paid:true — setDoc con merge crea o actualiza sin importar si existe
+
+      // 3. Escribir paid:true en players — usar valores del estado y localStorage
+      const currentName=userName||lsGet("ps_user")||"";
+      const currentPhone=userPhone||lsGet("ps_phone")||"";
+      const currentHave=have&&have.length>0?have:(()=>{try{return JSON.parse(lsGet("ps_have")||"[]");}catch{return [];}})();
+      const currentWant=want&&want.length>0?want:(()=>{try{return JSON.parse(lsGet("ps_want")||"[]");}catch{return [];}})();
+
       const playerRef=doc(db,"players",uuid);
       await setDoc(playerRef,{
         uuid,
-        name:lsGet("ps_user")||"",
-        phone:lsGet("ps_phone")||"",
-        have:[],
-        want:[],
+        name:currentName,
+        phone:currentPhone,
+        have:currentHave,
+        want:currentWant,
         paid:true,
         updatedAt:Date.now()
       },{merge:true});
+
+      // 4. Marcar acceso en estado y localStorage
       setAccessGranted(true);
       lsSet("ps_access","1");
       setAccessChecking(false);
       return true;
-    }catch{
-      setAccessError("Error al validar. Verifica tu conexión.");
+    }catch(e){
+      console.error("Error en validateAccessCode:",e);
+      setAccessError("Error al validar. Verifica tu conexión e intenta de nuevo.");
       setAccessChecking(false);
       return false;
     }
