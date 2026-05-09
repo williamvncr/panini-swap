@@ -117,7 +117,70 @@ function buildWALink(phone:string,myName:string,canGive:string[],canReceive:stri
 }
 
 // ─── Global CSS ───────────────────────────────────────────────────────────────
-const GLOBAL_CSS=`*:focus-visible{outline:3px solid #818cf8;outline-offset:2px;border-radius:4px;} html{font-size:16px;} body{margin:0;background:#0d0d1a;} @keyframes sIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}} @keyframes spin{to{transform:rotate(360deg)}}`;
+const GLOBAL_CSS=`
+  *:focus-visible{outline:3px solid #818cf8;outline-offset:2px;border-radius:4px;}
+  html{font-size:16px;}
+  body{margin:0;background:#0d0d1a;}
+  @keyframes sIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+
+  .hb-overlay{
+    position:fixed;inset:0;z-index:200;
+    background:rgba(0,0,0,0.6);
+    animation:fadeIn 0.18s ease;
+  }
+  .hb-panel{
+    position:absolute;top:0;right:0;
+    width:min(300px,85vw);
+    height:100vh;
+    background:#13131f;
+    border-left:2px solid #2a2a3d;
+    padding:20px;
+    display:flex;flex-direction:column;gap:0;
+    animation:slideInRight 0.22s ease;
+    overflow-y:auto;
+    box-sizing:border-box;
+  }
+
+  .country-grid{
+    display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding:2px;
+  }
+  .country-pill{
+    border-radius:20px;padding:6px 12px;font-size:13px;cursor:pointer;
+    font-family:inherit;font-weight:400;white-space:nowrap;
+    border:2px solid #3a3a55;background:#1e1e35;color:#a0a0bc;
+    transition:transform 0.1s;
+  }
+  .country-pill.active{font-weight:700;}
+  .country-pill.has-count{font-weight:700;}
+
+  .sticker-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(52px,1fr));
+    gap:6px;
+  }
+
+  .stats-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    margin-bottom:24px;
+  }
+
+  @media(max-width:480px){
+    .sticker-grid{
+      grid-template-columns:repeat(auto-fill,minmax(44px,1fr));
+    }
+    .country-pill{
+      padding:5px 9px;font-size:12px;
+    }
+    .stats-grid{
+      grid-template-columns:repeat(2,1fr);
+    }
+  }
+`;
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({notifications,onDismiss}:{notifications:string[];onDismiss:(i:number)=>void}) {
@@ -139,6 +202,83 @@ function Toast({notifications,onDismiss}:{notifications:string[];onDismiss:(i:nu
   );
 }
 
+// ─── Hamburger Menu ───────────────────────────────────────────────────────────
+function HamburgerMenu({
+  userName, userPhone, userLoc, userUUID, onClose, onLogout
+}:{
+  userName:string; userPhone:string; userLoc:Loc|null; userUUID:string;
+  onClose:()=>void; onLogout:()=>void;
+}) {
+  const [copyLabel,setCopyLabel] = useState("Copiar");
+
+  const handleCopy = () => {
+    navigator.clipboard?.writeText(shortCode(userUUID));
+    setCopyLabel("¡Copiado!");
+    setTimeout(()=>setCopyLabel("Copiar"),2000);
+  };
+
+  return (
+    <div className="hb-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Menú de perfil">
+      <div className="hb-panel" onClick={e=>e.stopPropagation()}>
+
+        {/* Header del panel */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"24px"}}>
+          <span style={{color:"#e8e8f0",fontWeight:"900",fontSize:"16px"}}>Mi perfil</span>
+          <button onClick={onClose} aria-label="Cerrar menú"
+            style={{background:"none",border:"2px solid #3a3a55",borderRadius:"8px",padding:"5px 10px",color:"#a0a0bc",cursor:"pointer",fontSize:"16px",lineHeight:1}}>
+            ✕
+          </button>
+        </div>
+
+        {/* Info del usuario */}
+        <div style={{background:"#0d0d1a",borderRadius:"12px",padding:"14px",marginBottom:"12px",border:"1px solid #2a2a3d"}}>
+          <div style={{color:"#e8e8f0",fontWeight:"700",fontSize:"17px",marginBottom:"10px"}}>{userName}</div>
+          <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+            {userPhone
+              ? <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                  <span style={{color:"#25d366",fontSize:"11px",fontWeight:"700",background:"#25d36622",padding:"2px 7px",borderRadius:"20px"}}>WA</span>
+                  <span style={{color:"#a0a0bc",fontSize:"13px"}}>{userPhone}</span>
+                </div>
+              : <span style={{color:"#555",fontSize:"13px"}}>Sin WhatsApp registrado</span>
+            }
+            {userLoc
+              ? <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                  <span style={{fontSize:"11px",fontWeight:"700",color:"#22d3ee",background:"#22d3ee22",padding:"2px 7px",borderRadius:"20px"}}>📍</span>
+                  <span style={{color:"#a0a0bc",fontSize:"13px"}}>Ubicación registrada</span>
+                </div>
+              : <span style={{color:"#555",fontSize:"13px"}}>Sin ubicación registrada</span>
+            }
+          </div>
+        </div>
+
+        {/* Código de perfil */}
+        <div style={{background:"#0d0d1a",borderRadius:"12px",padding:"14px",marginBottom:"24px",border:"1px solid #2a2a3d"}}>
+          <div style={{color:"#888",fontSize:"12px",marginBottom:"10px",lineHeight:"1.5"}}>
+            Código para acceder desde otro dispositivo:
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+            <code style={{color:"#818cf8",fontFamily:"'DM Mono',monospace",fontSize:"20px",fontWeight:"700",letterSpacing:"0.12em",flex:1}}>
+              {shortCode(userUUID)}
+            </code>
+            <button onClick={handleCopy} aria-label="Copiar código de perfil"
+              style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"8px",padding:"7px 12px",color:"#a0a0bc",fontSize:"12px",cursor:"pointer",fontFamily:"inherit",fontWeight:"700",whiteSpace:"nowrap"}}>
+              {copyLabel}
+            </button>
+          </div>
+        </div>
+
+        <div style={{flex:1}}/>
+
+        {/* Cerrar sesión */}
+        <button onClick={onLogout}
+          style={{width:"100%",background:"none",border:"2px solid #3a3a55",borderRadius:"10px",padding:"13px",color:"#f87171",fontFamily:"inherit",fontSize:"15px",fontWeight:"700",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px"}}>
+          <span aria-hidden="true">↩</span> Cerrar sesión
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Sticker panel ────────────────────────────────────────────────────────────
 function StickerPanel({selected,onToggle,accent,labelPrefix}:{selected:string[];onToggle:(c:string)=>void;accent:string;labelPrefix:string}) {
   const [activeSection,setActiveSection]=useState("FWC");
@@ -148,15 +288,22 @@ function StickerPanel({selected,onToggle,accent,labelPrefix}:{selected:string[];
   return (
     <div>
       <nav aria-label="Seleccionar país">
-        <div role="list" style={{display:"flex",flexWrap:"wrap",gap:"6px",marginBottom:"14px",padding:"2px"}}>
+        <div className="country-grid" role="list">
           {SECTIONS.map(s=>{
             const count=s.codes.filter(c=>selected.includes(c)).length;
             const isActive=s.prefix===activeSection;
             return (
               <div key={s.prefix} role="listitem">
-                <button onClick={()=>setActiveSection(s.prefix)} aria-pressed={isActive}
+                <button
+                  onClick={()=>setActiveSection(s.prefix)}
+                  aria-pressed={isActive}
                   aria-label={`${s.label}${count>0?`, ${count} seleccionadas`:""}`}
-                  style={{background:isActive?accent:count>0?accent+"33":"#1e1e35",border:`2px solid ${isActive?accent:count>0?accent+"88":"#3a3a55"}`,borderRadius:"20px",padding:"5px 11px",color:isActive?(isDark?"#0d0d1a":"#fff"):count>0?accent:"#a0a0bc",fontSize:"13px",cursor:"pointer",fontFamily:"inherit",fontWeight:isActive||count>0?"700":"400",whiteSpace:"nowrap" as const}}>
+                  className={`country-pill${isActive?" active":""}${count>0&&!isActive?" has-count":""}`}
+                  style={{
+                    background:isActive?accent:count>0?accent+"33":"#1e1e35",
+                    borderColor:isActive?accent:count>0?accent+"88":"#3a3a55",
+                    color:isActive?(isDark?"#0d0d1a":"#fff"):count>0?accent:"#a0a0bc",
+                  }}>
                   <span aria-hidden="true">{s.flag}</span> {s.prefix}{count>0&&!isActive?` (${count})`:""}
                 </button>
               </div>
@@ -168,8 +315,7 @@ function StickerPanel({selected,onToggle,accent,labelPrefix}:{selected:string[];
         <h2 style={{color:"#e8e8f0",fontWeight:"700",fontSize:"15px",margin:0}}><span aria-hidden="true">{section.flag}</span> {section.label}</h2>
         <span aria-live="polite" style={{color:"#a0a0bc",fontSize:"13px"}}>{selCount} de {section.codes.length} {labelPrefix}</span>
       </div>
-      <div role="group" aria-label={`Figuras de ${section.label}`}
-        style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(56px,1fr))",gap:"6px"}}>
+      <div role="group" aria-label={`Figuras de ${section.label}`} className="sticker-grid">
         {section.codes.map(code=>{
           const isSel=selected.includes(code);
           return (
@@ -301,6 +447,7 @@ export default function PaniniSwap() {
   const [seenMatches,setSeenMatches] = useState<Set<string>>(new Set());
   const [maxDist,setMaxDist]         = useState<number|null>(null);
   const [sortBy,setSortBy]           = useState<"score"|"distance">("score");
+  const [menuOpen,setMenuOpen]       = useState(false);
 
   useEffect(()=>{
     const uuid=getOrCreateUUID();
@@ -318,6 +465,14 @@ export default function PaniniSwap() {
     },()=>setAppLoading(false));
     return()=>unsub();
   },[]);
+
+  // Cerrar menú con Escape
+  useEffect(()=>{
+    if(!menuOpen) return;
+    const handler=(e:KeyboardEvent)=>{ if(e.key==="Escape") setMenuOpen(false); };
+    window.addEventListener("keydown",handler);
+    return()=>window.removeEventListener("keydown",handler);
+  },[menuOpen]);
 
   const detectLocation=useCallback(()=>{
     if(!navigator.geolocation){setLocError("Tu navegador no soporta geolocalización.");return;}
@@ -380,6 +535,11 @@ export default function PaniniSwap() {
     }catch(e){console.error(e);}finally{setSaving(false);}
   };
 
+  const handleLogout=()=>{
+    ["ps_user","ps_phone","ps_have","ps_want","ps_seen","ps_loc","ps_uuid"].forEach(k=>localStorage.removeItem(k));
+    window.location.reload();
+  };
+
   const toggleHave=useCallback((c:string)=>setHave(p=>p.includes(c)?p.filter(x=>x!==c):[...p,c]),[]);
   const toggleWant=useCallback((c:string)=>setWant(p=>p.includes(c)?p.filter(x=>x!==c):[...p,c]),[]);
   const addToHave=useCallback((cs:string[])=>setHave(p=>[...new Set([...p,...cs])]),[]);
@@ -397,6 +557,7 @@ export default function PaniniSwap() {
   const DIST_OPTS:[string,number|null][]=[["Todos",null],["<2 km",2],["<10 km",10],["<30 km",30],["<100 km",100]];
   const inp:React.CSSProperties={width:"100%",background:"#1e1e35",border:"2px solid #3a3a55",borderRadius:"10px",padding:"14px 16px",color:"#e8e8f0",fontFamily:"inherit",fontSize:"16px",outline:"none",boxSizing:"border-box"};
 
+  // ── Loading ──────────────────────────────────────────────────────────────────
   if(appLoading)return(
     <>
       <style>{GLOBAL_CSS}</style>
@@ -409,6 +570,7 @@ export default function PaniniSwap() {
     </>
   );
 
+  // ── Setup ────────────────────────────────────────────────────────────────────
   if(view==="setup")return(
     <>
       <style>{GLOBAL_CSS}</style>
@@ -449,6 +611,7 @@ export default function PaniniSwap() {
     </>
   );
 
+  // ── Restore ──────────────────────────────────────────────────────────────────
   if(view==="restore")return(
     <>
       <style>{GLOBAL_CSS}</style>
@@ -484,58 +647,60 @@ export default function PaniniSwap() {
     </>
   );
 
+  // ── Main app ─────────────────────────────────────────────────────────────────
   return(
     <>
       <style>{GLOBAL_CSS}</style>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@400;700;900&display=swap" rel="stylesheet"/>
       <Toast notifications={toasts} onDismiss={dismissToast}/>
+
+      {menuOpen&&(
+        <HamburgerMenu
+          userName={userName}
+          userPhone={userPhone}
+          userLoc={userLoc}
+          userUUID={userUUID}
+          onClose={()=>setMenuOpen(false)}
+          onLogout={handleLogout}
+        />
+      )}
+
       <div aria-live="polite" aria-atomic="true" style={{position:"absolute",width:"1px",height:"1px",overflow:"hidden",clip:"rect(0,0,0,0)"}}>
         {saved?"Perfil publicado correctamente":saving?"Publicando…":""}
       </div>
 
       <div style={{minHeight:"100vh",background:"#0d0d1a",fontFamily:"'Bricolage Grotesque',sans-serif",color:"#e8e8f0",paddingBottom:"48px"}}>
-        <header style={{background:"#13131f",borderBottom:"2px solid #1e1e2e",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10,gap:"8px"}}>
-          <div style={{flexShrink:0}}>
-            <span style={{fontSize:"17px",fontWeight:"900",whiteSpace:"nowrap" as const}}><span aria-hidden="true">⚽</span> Panini Swap</span>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:"8px",flex:1,justifyContent:"flex-end",minWidth:0}}>
-            <div style={{textAlign:"right",minWidth:0}}>
-              <div style={{fontSize:"13px",color:"#a0a0bc",whiteSpace:"nowrap" as const,overflow:"hidden",textOverflow:"ellipsis",maxWidth:"130px"}}>
-                <strong style={{color:"#818cf8"}}>{userName}</strong>
-                {userPhone&&<span style={{color:"#25d366",marginLeft:"4px",fontSize:"10px"}} aria-label="WhatsApp registrado">● WA</span>}
-                {userLoc&&<span style={{color:"#22d3ee",marginLeft:"2px",fontSize:"10px"}} aria-label="Ubicación registrada">● 📍</span>}
-              </div>
-              {userUUID&&(
-                <div style={{display:"flex",alignItems:"center",gap:"4px",marginTop:"2px",justifyContent:"flex-end"}}>
-                  <code style={{fontSize:"11px",color:"#818cf8",fontFamily:"'DM Mono',monospace",fontWeight:"700",letterSpacing:"0.06em"}}>{shortCode(userUUID)}</code>
-                  <button onClick={()=>navigator.clipboard?.writeText(shortCode(userUUID))}
-                    aria-label="Copiar código de perfil"
-                    style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"4px",padding:"1px 6px",color:"#888",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" as const}}>
-                    Copiar
-                  </button>
-                </div>
-              )}
-            </div>
+
+        {/* ── Header limpio: logo | Guardar + hamburger ── */}
+        <header style={{background:"#13131f",borderBottom:"2px solid #1e1e2e",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10,gap:"10px"}}>
+          <span style={{fontSize:"17px",fontWeight:"900",whiteSpace:"nowrap" as const,flexShrink:0}}>
+            <span aria-hidden="true">⚽</span> Panini Swap
+          </span>
+
+          <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
             <button onClick={publishToFirebase} disabled={saving}
               aria-label={saved?"Cambios guardados":saving?"Guardando cambios":"Guardar cambios"}
-              style={{background:saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 12px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"13px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s",whiteSpace:"nowrap" as const,flexShrink:0}}>
+              style={{background:saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"14px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s",whiteSpace:"nowrap" as const}}>
               {saved?"✓ Guardado":saving?"Guardando...":"Guardar"}
             </button>
+
+            {/* Botón hamburger */}
             <button
-              aria-label="Cerrar sesión"
-              title="Cerrar sesión"
-              onClick={()=>{
-                ["ps_user","ps_phone","ps_have","ps_want","ps_seen","ps_loc","ps_uuid"].forEach(k=>localStorage.removeItem(k));
-                window.location.reload();
-              }}
-              style={{background:"none",border:"2px solid #3a3a55",borderRadius:"8px",padding:"8px 10px",color:"#666",fontSize:"13px",cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
-              ↩
+              onClick={()=>setMenuOpen(true)}
+              aria-label="Abrir menú de perfil"
+              aria-expanded={menuOpen}
+              style={{background:"#1e1e35",border:"2px solid #3a3a55",borderRadius:"8px",padding:"0",color:"#a0a0bc",cursor:"pointer",display:"flex",flexDirection:"column",gap:"4px",alignItems:"center",justifyContent:"center",width:"40px",height:"40px",flexShrink:0}}>
+              <span style={{display:"block",width:"16px",height:"2px",background:"#a0a0bc",borderRadius:"2px"}}/>
+              <span style={{display:"block",width:"16px",height:"2px",background:"#a0a0bc",borderRadius:"2px"}}/>
+              <span style={{display:"block",width:"16px",height:"2px",background:"#a0a0bc",borderRadius:"2px"}}/>
             </button>
           </div>
         </header>
 
         <main style={{maxWidth:"900px",margin:"0 auto",padding:"24px 16px"}}>
-          <section aria-label="Resumen" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"10px",marginBottom:"24px"}}>
+
+          {/* Stats — 4 cols desktop, 2 cols mobile */}
+          <section aria-label="Resumen" className="stats-grid">
             {[
               {label:"Repetidas",val:have.length,color:"#f59e0b"},
               {label:"Buscando",val:want.length,color:"#22d3ee"},
@@ -549,6 +714,7 @@ export default function PaniniSwap() {
             ))}
           </section>
 
+          {/* Tabs */}
           <div role="tablist" aria-label="Secciones" style={{display:"flex",gap:"4px",marginBottom:"20px",background:"#13131f",padding:"4px",borderRadius:"12px"}}>
             {TABS.map(t=>(
               <button key={t.id} role="tab" onClick={()=>setTab(t.id)} aria-selected={tab===t.id} aria-controls={`panel-${t.id}`} id={`tab-${t.id}`}
@@ -561,18 +727,21 @@ export default function PaniniSwap() {
             ))}
           </div>
 
+          {/* Panel: Mis Repetidas */}
           <div id="panel-have" role="tabpanel" aria-labelledby="tab-have" hidden={tab!=="have"}>
             <p style={{color:"#a0a0bc",fontSize:"14px",margin:"0 0 12px",lineHeight:"1.6"}}>Selecciona por país las figuras que tienes repetidas, o escribe rangos como <code style={{color:"#f59e0b",background:"#f59e0b11",padding:"1px 6px",borderRadius:"4px"}}>ARG1-5, BRA7</code></p>
             <RangeSelector onAdd={addToHave} accent="#f59e0b"/>
             <StickerPanel selected={have} onToggle={toggleHave} accent="#f59e0b" labelPrefix="repetida"/>
           </div>
 
+          {/* Panel: Las que Busco */}
           <div id="panel-want" role="tabpanel" aria-labelledby="tab-want" hidden={tab!=="want"}>
             <p style={{color:"#a0a0bc",fontSize:"14px",margin:"0 0 12px",lineHeight:"1.6"}}>Selecciona las figuras que te faltan. Otros las verán al hacer match contigo.</p>
             <RangeSelector onAdd={addToWant} accent="#22d3ee"/>
             <StickerPanel selected={want} onToggle={toggleWant} accent="#22d3ee" labelPrefix="buscada"/>
           </div>
 
+          {/* Panel: Matches */}
           <div id="panel-match" role="tabpanel" aria-labelledby="tab-match" hidden={tab!=="match"}>
             <section aria-label="Mi ubicación" style={{background:"#13131f",border:"2px solid #1e1e2e",borderRadius:"12px",padding:"16px",marginBottom:"16px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap" as const,gap:"10px"}}>
@@ -633,24 +802,13 @@ export default function PaniniSwap() {
             {myEntry&&(
               <section aria-label="Tu perfil publicado" style={{marginTop:"24px",padding:"16px",background:"#13131f",borderRadius:"12px",border:"2px solid #1e1e2e"}}>
                 <h2 style={{fontSize:"13px",color:"#888",fontWeight:"400",margin:"0 0 10px"}}>Tu perfil en la red</h2>
-                <dl style={{display:"flex",flexWrap:"wrap" as const,gap:"14px",fontSize:"13px",margin:"0 0 14px"}}>
+                <dl style={{display:"flex",flexWrap:"wrap" as const,gap:"14px",fontSize:"13px",margin:0}}>
                   <div><dt style={{display:"inline",color:"#888"}}>Repetidas: </dt><dd style={{display:"inline",color:"#f59e0b",margin:0,fontWeight:"700"}}>{myEntry.have.length}</dd></div>
                   <div><dt style={{display:"inline",color:"#888"}}>Buscando: </dt><dd style={{display:"inline",color:"#22d3ee",margin:0,fontWeight:"700"}}>{myEntry.want.length}</dd></div>
                   <div><dt style={{display:"inline",color:"#888"}}>WhatsApp: </dt><dd style={{display:"inline",color:myEntry.phone?"#86efac":"#555",margin:0}}>{myEntry.phone?"✓ Sí":"No"}</dd></div>
                   <div><dt style={{display:"inline",color:"#888"}}>Ubicación: </dt><dd style={{display:"inline",color:myEntry.loc?"#86efac":"#555",margin:0}}>{myEntry.loc?"✓ Sí":"No"}</dd></div>
                   <div><dt style={{display:"inline",color:"#888"}}>Actualizado: </dt><dd style={{display:"inline",color:"#555",margin:0}}>{new Date(myEntry.updatedAt).toLocaleDateString()}</dd></div>
                 </dl>
-                <div style={{background:"#0d0d1a",borderRadius:"8px",padding:"12px 14px",border:"1px solid #3a3a55"}}>
-                  <p style={{color:"#888",fontSize:"12px",margin:"0 0 6px"}}>Tu código de perfil — úsalo para acceder desde otro dispositivo:</p>
-                  <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                    <code style={{color:"#818cf8",fontFamily:"'DM Mono',monospace",fontSize:"18px",fontWeight:"700",letterSpacing:"0.12em"}}>{shortCode(userUUID)}</code>
-                    <button onClick={()=>navigator.clipboard?.writeText(shortCode(userUUID))}
-                      aria-label="Copiar código de perfil"
-                      style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"6px",padding:"4px 10px",color:"#a0a0bc",fontSize:"12px",cursor:"pointer",fontFamily:"inherit"}}>
-                      Copiar
-                    </button>
-                  </div>
-                </div>
               </section>
             )}
           </div>
