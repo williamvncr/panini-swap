@@ -96,7 +96,7 @@ function distColor(km:number|null):string {
 const lsGet=(k:string)=>{try{return localStorage.getItem(k);}catch{return null;}};
 const lsSet=(k:string,v:string)=>{try{localStorage.setItem(k,v);}catch{}};
 
-// ─── UUID — identificador único por dispositivo ───────────────────────────────
+// ─── UUID ─────────────────────────────────────────────────────────────────────
 function getOrCreateUUID():string {
   let id=lsGet("ps_uuid");
   if(!id){
@@ -105,7 +105,6 @@ function getOrCreateUUID():string {
   }
   return id;
 }
-// Código corto legible derivado del UUID (ej: WILL-4A2F)
 function shortCode(uuid:string):string {
   return uuid.slice(0,8).toUpperCase();
 }
@@ -118,12 +117,7 @@ function buildWALink(phone:string,myName:string,canGive:string[],canReceive:stri
 }
 
 // ─── Global CSS ───────────────────────────────────────────────────────────────
-const GLOBAL_CSS=`
-  *:focus-visible{outline:3px solid #818cf8;outline-offset:2px;border-radius:4px;}
-  html{font-size:16px;} body{margin:0;background:#0d0d1a;}
-  @keyframes sIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
-  @keyframes spin{to{transform:rotate(360deg)}}
-`;
+const GLOBAL_CSS=`*:focus-visible{outline:3px solid #818cf8;outline-offset:2px;border-radius:4px;} html{font-size:16px;} body{margin:0;background:#0d0d1a;} @keyframes sIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}} @keyframes spin{to{transform:rotate(360deg)}}`;
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({notifications,onDismiss}:{notifications:string[];onDismiss:(i:number)=>void}) {
@@ -362,10 +356,8 @@ export default function PaniniSwap() {
   const restoreProfile=async()=>{
     const code=restoreCode.trim().toLowerCase();
     if(!code){setRestoreError("Ingresa tu código de perfil.");return;}
-    // Find player in Firestore whose UUID starts with the code
     const matched=allPlayers.find(p=>p.uuid&&p.uuid.startsWith(code));
     if(!matched){setRestoreError("No se encontró ningún perfil con ese código. Verifica e intenta de nuevo.");return;}
-    // Restore into this device
     const newUUID=matched.uuid;
     lsSet("ps_uuid",newUUID);lsSet("ps_user",matched.name);
     if(matched.phone)lsSet("ps_phone",matched.phone);
@@ -411,7 +403,7 @@ export default function PaniniSwap() {
       <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0d0d1a"}} role="status" aria-label="Cargando aplicación">
         <div style={{textAlign:"center"}}>
           <div style={{width:"40px",height:"40px",border:"3px solid #3a3a55",borderTopColor:"#6366f1",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 16px"}} aria-hidden="true"/>
-          <p style={{color:"#a0a0bc",fontFamily:"'DM Mono',monospace",fontSize:"14px",margin:0}}>Conectando...</p>
+          <p style={{color:"#a0a0bc",fontFamily:"'DM Mono',monospace",fontSize:"14px",margin:0}}>Conectando…</p>
         </div>
       </div>
     </>
@@ -426,7 +418,6 @@ export default function PaniniSwap() {
           <div aria-hidden="true" style={{fontSize:"52px",marginBottom:"12px",textAlign:"center"}}>⚽</div>
           <h1 style={{color:"#e8e8f0",margin:"0 0 4px",fontSize:"28px",fontWeight:"900",textAlign:"center"}}>Panini Swap</h1>
           <p style={{color:"#666",fontSize:"13px",margin:"0 0 28px",textAlign:"center"}}>FIFA World Cup 2026</p>
-
           <div style={{display:"flex",flexDirection:"column",gap:"14px",marginBottom:"8px"}}>
             <div>
               <label htmlFor="setup-name" style={{display:"block",color:"#e8e8f0",fontSize:"14px",fontWeight:"700",marginBottom:"6px"}}>
@@ -442,12 +433,10 @@ export default function PaniniSwap() {
               <p style={{color:"#666",fontSize:"12px",margin:"6px 0 0",lineHeight:"1.5"}}>Con código de país. Solo visible para tus matches.</p>
             </div>
           </div>
-
           <button onClick={saveProfile} disabled={!nameInput.trim()} aria-disabled={!nameInput.trim()}
             style={{width:"100%",marginTop:"20px",background:nameInput.trim()?"#6366f1":"#2a2a3d",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:nameInput.trim()?"#fff":"#666",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:nameInput.trim()?"pointer":"not-allowed",transition:"all 0.2s"}}>
             Crear perfil →
           </button>
-
           <div style={{marginTop:"20px",paddingTop:"20px",borderTop:"1px solid #2a2a3d",textAlign:"center"}}>
             <p style={{color:"#666",fontSize:"13px",margin:"0 0 10px"}}>¿Ya tienes un perfil en otro dispositivo?</p>
             <button onClick={()=>setView("restore")}
@@ -501,29 +490,27 @@ export default function PaniniSwap() {
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@400;700;900&display=swap" rel="stylesheet"/>
       <Toast notifications={toasts} onDismiss={dismissToast}/>
       <div aria-live="polite" aria-atomic="true" style={{position:"absolute",width:"1px",height:"1px",overflow:"hidden",clip:"rect(0,0,0,0)"}}>
-        {saved?"Perfil publicado correctamente":saving?"Publicando...":""}
+        {saved?"Perfil publicado correctamente":saving?"Publicando…":""}
       </div>
 
       <div style={{minHeight:"100vh",background:"#0d0d1a",fontFamily:"'Bricolage Grotesque',sans-serif",color:"#e8e8f0",paddingBottom:"48px"}}>
-        <header style={{background:"#13131f",borderBottom:"2px solid #1e1e2e",padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10}}>
-          <div>
-            <span style={{fontSize:"19px",fontWeight:"900"}}><span aria-hidden="true">⚽</span> Panini Swap</span>
-            <span style={{fontSize:"12px",color:"#666",marginLeft:"8px"}}>FIFA World Cup 2026</span>
+        <header style={{background:"#13131f",borderBottom:"2px solid #1e1e2e",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10,gap:"8px"}}>
+          <div style={{flexShrink:0}}>
+            <span style={{fontSize:"17px",fontWeight:"900",whiteSpace:"nowrap" as const}}><span aria-hidden="true">⚽</span> Panini Swap</span>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
-            <div style={{textAlign:"right"}}>
-              <span style={{fontSize:"13px",color:"#a0a0bc"}}>
+          <div style={{display:"flex",alignItems:"center",gap:"8px",flex:1,justifyContent:"flex-end",minWidth:0}}>
+            <div style={{textAlign:"right",minWidth:0}}>
+              <div style={{fontSize:"13px",color:"#a0a0bc",whiteSpace:"nowrap" as const,overflow:"hidden",textOverflow:"ellipsis",maxWidth:"130px"}}>
                 <strong style={{color:"#818cf8"}}>{userName}</strong>
-                {userPhone&&<span style={{color:"#25d366",marginLeft:"6px",fontSize:"10px"}} aria-label="WhatsApp registrado">● WA</span>}
-                {userLoc&&<span style={{color:"#22d3ee",marginLeft:"4px",fontSize:"10px"}} aria-label="Ubicación registrada">● 📍</span>}
-              </span>
+                {userPhone&&<span style={{color:"#25d366",marginLeft:"4px",fontSize:"10px"}} aria-label="WhatsApp registrado">● WA</span>}
+                {userLoc&&<span style={{color:"#22d3ee",marginLeft:"2px",fontSize:"10px"}} aria-label="Ubicación registrada">● 📍</span>}
+              </div>
               {userUUID&&(
-                <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"3px",justifyContent:"flex-end"}}>
-                  <span style={{fontSize:"11px",color:"#555"}}>Código:</span>
-                  <code style={{fontSize:"12px",color:"#818cf8",fontFamily:"'DM Mono',monospace",fontWeight:"700",letterSpacing:"0.08em"}}>{shortCode(userUUID)}</code>
+                <div style={{display:"flex",alignItems:"center",gap:"4px",marginTop:"2px",justifyContent:"flex-end"}}>
+                  <code style={{fontSize:"11px",color:"#818cf8",fontFamily:"'DM Mono',monospace",fontWeight:"700",letterSpacing:"0.06em"}}>{shortCode(userUUID)}</code>
                   <button onClick={()=>navigator.clipboard?.writeText(shortCode(userUUID))}
                     aria-label="Copiar código de perfil"
-                    style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"4px",padding:"1px 7px",color:"#888",fontSize:"10px",cursor:"pointer",fontFamily:"inherit"}}>
+                    style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"4px",padding:"1px 6px",color:"#888",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" as const}}>
                     Copiar
                   </button>
                 </div>
@@ -531,17 +518,17 @@ export default function PaniniSwap() {
             </div>
             <button onClick={publishToFirebase} disabled={saving}
               aria-label={saved?"Cambios guardados":saving?"Guardando cambios":"Guardar cambios"}
-              style={{background:saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"13px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s"}}>
+              style={{background:saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 12px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"13px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s",whiteSpace:"nowrap" as const,flexShrink:0}}>
               {saved?"✓ Guardado":saving?"Guardando...":"Guardar"}
             </button>
             <button
               aria-label="Cerrar sesión"
+              title="Cerrar sesión"
               onClick={()=>{
                 ["ps_user","ps_phone","ps_have","ps_want","ps_seen","ps_loc","ps_uuid"].forEach(k=>localStorage.removeItem(k));
                 window.location.reload();
               }}
-              style={{background:"none",border:"2px solid #3a3a55",borderRadius:"8px",padding:"8px 10px",color:"#666",fontSize:"13px",cursor:"pointer",fontFamily:"inherit"}}
-              title="Cerrar sesión">
+              style={{background:"none",border:"2px solid #3a3a55",borderRadius:"8px",padding:"8px 10px",color:"#666",fontSize:"13px",cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
               ↩
             </button>
           </div>
