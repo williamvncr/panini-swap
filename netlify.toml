@@ -1,3 +1,6 @@
+[build]
+  SECRETS_SCAN_SMART_DETECTION_OMIT_VALUES = "AIzaSyCWcm56cTrPU2sLJhuNa9pWekCEc6hDiWI"
+
 [[headers]]
   for = "/*"
   [headers.values]
