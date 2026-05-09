@@ -554,14 +554,9 @@ export default function PaniniSwap() {
       const data=snap.data();
       if(data.used){setAccessError("Este código ya fue utilizado.");setAccessChecking(false);return false;}
       await updateDoc(ref,{used:true,usedBy:uuid,usedAt:Date.now()});
-      // Marcar al jugador como pagado en Firebase
-      if(userName){
-        const playerRef=doc(db,"players",uuid);
-        const playerSnap=await getDoc(playerRef);
-        if(playerSnap.exists()){
-          await updateDoc(playerRef,{paid:true});
-        }
-      }
+      // Marcar al jugador como pagado en Firebase (merge para no sobreescribir)
+      const playerRef=doc(db,"players",uuid);
+      await setDoc(playerRef,{paid:true},{ merge:true });
       setAccessGranted(true);
       lsSet("ps_access","1");
       setAccessChecking(false);
@@ -594,10 +589,11 @@ export default function PaniniSwap() {
     setView("main");
   };
 
-  const publishToFirebase=async()=>{
+  const publishToFirebase=async(forcePaid=false)=>{
     if(!userName||saving)return;
     setSaving(true);
-    const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have,want,updatedAt:Date.now(),paid:accessGranted||undefined};
+    const isPaid=forcePaid||accessGranted||undefined;
+    const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have,want,updatedAt:Date.now(),paid:isPaid||undefined};
     if(userLoc)entry.loc=userLoc;
     try{
       await setDoc(doc(db,"players",userUUID),entry);
@@ -746,14 +742,14 @@ export default function PaniniSwap() {
             <input
               value={accessCode}
               onChange={e=>{setAccessCode(e.target.value.toUpperCase());setAccessError("");}}
-              onKeyDown={e=>e.key==="Enter"&&validateAccessCode(userUUID).then(ok=>{if(ok){setShowAccessModal(false);publishToFirebase();}})}
+              onKeyDown={e=>e.key==="Enter"&&validateAccessCode(userUUID).then(ok=>{if(ok){setShowAccessModal(false);publishToFirebase(true);}})}
               placeholder="Ej: SWAP-4X9K"
               autoFocus
               style={{width:"100%",background:"#0a1628",border:`2px solid ${accessError?"#f87171":"#2a4a6b"}`,borderRadius:"10px",padding:"14px 16px",color:"#e8e8f0",fontFamily:"'DM Mono',monospace",fontSize:"16px",outline:"none",boxSizing:"border-box" as const,letterSpacing:"0.08em",marginBottom:"8px"}}
             />
             {accessError&&<p role="alert" style={{color:"#f87171",fontSize:"13px",margin:"0 0 12px"}}>{accessError}</p>}
             <button
-              onClick={()=>validateAccessCode(userUUID).then(ok=>{if(ok){setShowAccessModal(false);publishToFirebase();}})}
+              onClick={()=>validateAccessCode(userUUID).then(ok=>{if(ok){setShowAccessModal(false);publishToFirebase(true);}})}
               disabled={!accessCode.trim()||accessChecking}
               style={{width:"100%",background:accessCode.trim()&&!accessChecking?"#e03c2d":"#1a3050",border:"2px solid transparent",borderRadius:"10px",padding:"13px",color:accessCode.trim()&&!accessChecking?"#fff":"#666",fontFamily:"inherit",fontSize:"15px",fontWeight:"700",cursor:accessCode.trim()&&!accessChecking?"pointer":"not-allowed",marginBottom:"10px"}}>
               {accessChecking?"Verificando...":"Activar acceso →"}
