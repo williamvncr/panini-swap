@@ -343,6 +343,34 @@ function HamburgerMenu({
   );
 }
 
+// ─── Sticker Button ───────────────────────────────────────────────────────────
+function StickerBtn({code,isSel,isDisabled,accent,isDark,labelPrefix,prefix,onToggle}:{
+  code:string;isSel:boolean;isDisabled:boolean;accent:string;isDark:boolean;
+  labelPrefix:string;prefix:string;onToggle:(c:string)=>void;
+}) {
+  return (
+    <button
+      onClick={()=>!isDisabled&&onToggle(code)}
+      aria-pressed={isSel}
+      aria-label={`${code}${isDisabled?", ya la tenés repetida":isSel?`, quitar de ${labelPrefix}s`:`, agregar a ${labelPrefix}s`}`}
+      disabled={isDisabled}
+      style={{
+        height:"46px",borderRadius:"8px",
+        border:`2px solid ${isDisabled?"#1a3050":isSel?accent:"#2a4a6b"}`,
+        background:isDisabled?"#0a1628":isSel?accent:"#0a1628",
+        color:isDisabled?"#2a4a6b":isSel?(isDark?"#0d0d1a":"#fff"):"#a0a0bc",
+        fontFamily:"'DM Mono',monospace",fontSize:"12px",
+        fontWeight:isSel?"700":"400",
+        cursor:isDisabled?"not-allowed":"pointer",
+        transition:"transform 0.1s",
+        transform:isSel?"scale(1.06)":"scale(1)",
+        opacity:isDisabled?0.35:1
+      }}>
+      {code.replace(prefix,"")}
+    </button>
+  );
+}
+
 // ─── Sticker panel ────────────────────────────────────────────────────────────
 function StickerPanel({selected,onToggle,accent,labelPrefix,disabled}:{selected:string[];onToggle:(c:string)=>void;accent:string;labelPrefix:string;disabled?:string[]}) {
   const [activeSection,setActiveSection]=useState("FWC");
@@ -383,17 +411,7 @@ function StickerPanel({selected,onToggle,accent,labelPrefix,disabled}:{selected:
         {section.codes.map(code=>{
           const isSel=(selected||[]).includes(code);
           return (
-            {(()=>{
-              const isDisabled=(disabled||[]).includes(code);
-              return (
-                <button key={code} onClick={()=>!isDisabled&&onToggle(code)} aria-pressed={isSel}
-                  aria-label={`${code}${isDisabled?", ya la tenés repetida":isSel?`, quitar de ${labelPrefix}s`:`, agregar a ${labelPrefix}s`}`}
-                  disabled={isDisabled}
-                  style={{height:"46px",borderRadius:"8px",border:`2px solid ${isDisabled?"#1a3050":isSel?accent:"#2a4a6b"}`,background:isDisabled?"#0a1628":isSel?accent:"#0a1628",color:isDisabled?"#2a4a6b":isSel?(isDark?"#0d0d1a":"#fff"):"#a0a0bc",fontFamily:"'DM Mono',monospace",fontSize:"12px",fontWeight:isSel?"700":"400",cursor:isDisabled?"not-allowed":"pointer",transition:"transform 0.1s",transform:isSel?"scale(1.06)":"scale(1)",opacity:isDisabled?0.35:1}}>
-                  {code.replace(section.prefix,"")}
-                </button>
-              );
-            })()}
+            <StickerBtn key={code} code={code} isSel={isSel} isDisabled={(disabled||[]).includes(code)} accent={accent} isDark={isDark} labelPrefix={labelPrefix} prefix={section.prefix} onToggle={onToggle}/>
           );
         })}
       </div>
