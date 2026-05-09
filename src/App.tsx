@@ -435,6 +435,7 @@ export default function PaniniSwap() {
   const [restoreError,setRestoreError] = useState("");
   const [userUUID,setUserUUID]       = useState("");
   const [accessGranted,setAccessGranted] = useState(false);
+  const [showAccessModal,setShowAccessModal] = useState(false);
   const [userName,setUserName]       = useState("");
   const [userPhone,setUserPhone]     = useState("");
   const [userLoc,setUserLoc]         = useState<Loc|null>(null);
@@ -562,11 +563,8 @@ export default function PaniniSwap() {
     }
   };
 
-  const saveProfile=async()=>{
+  const saveProfile=()=>{
     if(!nameInput.trim())return;
-    const uuid=userUUID||getOrCreateUUID();
-    const ok=await validateAccessCode(uuid);
-    if(!ok)return;
     lsSet("ps_user",nameInput.trim());lsSet("ps_phone",phoneInput.trim());
     setUserName(nameInput.trim());setUserPhone(phoneInput.trim());setView("main");
   };
@@ -658,21 +656,9 @@ export default function PaniniSwap() {
               <p style={{color:"#666",fontSize:"12px",margin:"6px 0 0",lineHeight:"1.5"}}>Con código de país. Solo visible para tus matches.</p>
             </div>
           </div>
-          <div style={{marginTop:"14px"}}>
-            <label htmlFor="setup-code" style={{display:"block",color:"#e8e8f0",fontSize:"14px",fontWeight:"700",marginBottom:"6px"}}>
-              Código de acceso <span aria-hidden="true" style={{color:"#f87171"}}>*</span>
-            </label>
-            <input id="setup-code" value={accessCode} onChange={e=>{setAccessCode(e.target.value.toUpperCase());setAccessError("");}}
-              onKeyDown={e=>e.key==="Enter"&&saveProfile()}
-              placeholder="Ej: SWAP-4X9K"
-              style={{...inp,fontFamily:"'DM Mono',monospace",letterSpacing:"0.08em"}}/>
-            <p style={{color:"#666",fontSize:"12px",margin:"6px 0 0",lineHeight:"1.5"}}>Recibiste este código al registrar tu pago.</p>
-            {accessError&&<p role="alert" style={{color:"#f87171",fontSize:"13px",margin:"6px 0 0"}}>{accessError}</p>}
-          </div>
-
-          <button onClick={saveProfile} disabled={!nameInput.trim()||!accessCode.trim()||accessChecking} aria-disabled={!nameInput.trim()||!accessCode.trim()}
-            style={{width:"100%",marginTop:"20px",background:(nameInput.trim()&&accessCode.trim()&&!accessChecking)?"#6366f1":"#2a2a3d",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:(nameInput.trim()&&accessCode.trim()&&!accessChecking)?"#fff":"#666",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:(nameInput.trim()&&accessCode.trim()&&!accessChecking)?"pointer":"not-allowed",transition:"all 0.2s"}}>
-            {accessChecking?"Verificando...":"Crear perfil →"}
+          <button onClick={saveProfile} disabled={!nameInput.trim()}
+            style={{width:"100%",marginTop:"20px",background:nameInput.trim()?"#6366f1":"#2a2a3d",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:nameInput.trim()?"#fff":"#666",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:nameInput.trim()?"pointer":"not-allowed",transition:"all 0.2s"}}>
+            Crear perfil →
           </button>
           <div style={{marginTop:"20px",paddingTop:"20px",borderTop:"1px solid #2a2a3d",textAlign:"center"}}>
             <p style={{color:"#666",fontSize:"13px",margin:"0 0 10px"}}>¿Ya tienes un perfil en otro dispositivo?</p>
@@ -729,6 +715,43 @@ export default function PaniniSwap() {
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@400;700;900&display=swap" rel="stylesheet"/>
       <Toast notifications={toasts} onDismiss={dismissToast}/>
 
+      {/* ── Modal de código de acceso ── */}
+      {showAccessModal&&(
+        <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}
+          onClick={()=>{setShowAccessModal(false);setAccessError("");setAccessCode("");}}>
+          <div style={{background:"#13131f",border:"2px solid #2a2a3d",borderRadius:"20px",padding:"32px 28px",maxWidth:"400px",width:"100%",fontFamily:"'Bricolage Grotesque',sans-serif"}}
+            onClick={e=>e.stopPropagation()}>
+            <div aria-hidden="true" style={{fontSize:"36px",textAlign:"center",marginBottom:"12px"}}>🔒</div>
+            <h2 style={{color:"#e8e8f0",fontWeight:"900",fontSize:"20px",textAlign:"center",margin:"0 0 8px"}}>Código de acceso</h2>
+            <p style={{color:"#a0a0bc",fontSize:"14px",textAlign:"center",lineHeight:"1.6",margin:"0 0 20px"}}>
+              Para guardar tu perfil y conectar con otros coleccionistas necesitas un código de acceso.
+            </p>
+            <input
+              value={accessCode}
+              onChange={e=>{setAccessCode(e.target.value.toUpperCase());setAccessError("");}}
+              onKeyDown={e=>e.key==="Enter"&&validateAccessCode(userUUID).then(ok=>{if(ok){setShowAccessModal(false);publishToFirebase();}})}
+              placeholder="Ej: SWAP-4X9K"
+              autoFocus
+              style={{width:"100%",background:"#1e1e35",border:`2px solid ${accessError?"#f87171":"#3a3a55"}`,borderRadius:"10px",padding:"14px 16px",color:"#e8e8f0",fontFamily:"'DM Mono',monospace",fontSize:"16px",outline:"none",boxSizing:"border-box" as const,letterSpacing:"0.08em",marginBottom:"8px"}}
+            />
+            {accessError&&<p role="alert" style={{color:"#f87171",fontSize:"13px",margin:"0 0 12px"}}>{accessError}</p>}
+            <button
+              onClick={()=>validateAccessCode(userUUID).then(ok=>{if(ok){setShowAccessModal(false);publishToFirebase();}})}
+              disabled={!accessCode.trim()||accessChecking}
+              style={{width:"100%",background:accessCode.trim()&&!accessChecking?"#6366f1":"#2a2a3d",border:"2px solid transparent",borderRadius:"10px",padding:"13px",color:accessCode.trim()&&!accessChecking?"#fff":"#666",fontFamily:"inherit",fontSize:"15px",fontWeight:"700",cursor:accessCode.trim()&&!accessChecking?"pointer":"not-allowed",marginBottom:"10px"}}>
+              {accessChecking?"Verificando...":"Activar acceso →"}
+            </button>
+            <p style={{color:"#666",fontSize:"12px",textAlign:"center",margin:"0 0 12px"}}>¿No tienes código? Escríbenos para obtener el tuyo.</p>
+            <a href="https://wa.me/TUNUMERO?text=Hola%2C%20quiero%20un%20c%C3%B3digo%20para%20Panini%20Swap%20%E2%9A%BD"
+              target="_blank" rel="noopener noreferrer"
+              style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",background:"#25d366",borderRadius:"10px",padding:"12px",color:"#fff",fontWeight:"700",fontSize:"14px",textDecoration:"none",fontFamily:"inherit"}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              Obtener código por WhatsApp
+            </a>
+          </div>
+        </div>
+      )}
+
       {menuOpen&&(
         <HamburgerMenu
           userName={userName}
@@ -753,9 +776,9 @@ export default function PaniniSwap() {
           </span>
 
           <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
-            <button onClick={accessGranted?publishToFirebase:()=>alert("Necesitas un código de acceso para guardar tu perfil.")} disabled={saving}
+            <button onClick={accessGranted?publishToFirebase:()=>setShowAccessModal(true)} disabled={saving}
               aria-label={saved?"Cambios guardados":saving?"Guardando cambios":"Guardar cambios"}
-              style={{background:!accessGranted?"#2a2a3d":saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:!accessGranted?"#666":saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"14px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s",whiteSpace:"nowrap" as const}}>
+              style={{background:!accessGranted?"#6366f1":saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"14px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s",whiteSpace:"nowrap" as const}}>
               {!accessGranted?"🔒 Guardar":saved?"✓ Guardado":saving?"Guardando...":"Guardar"}
             </button>
 
