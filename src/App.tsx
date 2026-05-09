@@ -796,7 +796,7 @@ export default function PaniniSwap() {
                 🔒 Activar<br/><span style={{fontSize:"11px",fontWeight:"400"}}>₡1.500</span>
               </button>
             )}
-            <button onClick={accessGranted?publishToFirebase:()=>setShowAccessModal(true)} disabled={saving}
+            <button onClick={accessGranted?()=>publishToFirebase():()=>setShowAccessModal(true)} disabled={saving}
               aria-label={saved?"Cambios guardados":saving?"Guardando cambios":"Guardar cambios"}
               style={{background:!accessGranted?"#e03c2d":saved?"#14532d":saving?"#1a3050":"#e03c2d",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"14px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s",whiteSpace:"nowrap" as const}}>
               {!accessGranted?"🔒 Guardar":saved?"✓ Guardado":saving?"Guardando...":"Guardar"}
