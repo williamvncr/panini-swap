@@ -354,7 +354,7 @@ function StickerPanel({selected,onToggle,accent,labelPrefix}:{selected:string[];
       <nav aria-label="Seleccionar país">
         <div className="country-grid" role="list">
           {SECTIONS.map(s=>{
-            const count=s.codes.filter(c=>selected.includes(c)).length;
+            const count=s.codes.filter(c=>(selected||[]).includes(c)).length;
             const isActive=s.prefix===activeSection;
             return (
               <div key={s.prefix} role="listitem">
@@ -778,13 +778,13 @@ export default function PaniniSwap() {
     window.location.reload();
   };
 
-  const toggleHave=useCallback((c:string)=>setHave(p=>p.includes(c)?p.filter(x=>x!==c):[...p,c]),[]);
-  const toggleWant=useCallback((c:string)=>setWant(p=>p.includes(c)?p.filter(x=>x!==c):[...p,c]),[]);
+  const toggleHave=useCallback((c:string)=>setHave(p=>(p||[]).includes(c)?(p||[]).filter(x=>x!==c):[...(p||[]),c]),[]);
+  const toggleWant=useCallback((c:string)=>setWant(p=>(p||[]).includes(c)?(p||[]).filter(x=>x!==c):[...(p||[]),c]),[]);
   const addToHave=useCallback((cs:string[])=>setHave(p=>[...new Set([...p,...cs])]),[]);
   const addToWant=useCallback((cs:string[])=>setWant(p=>[...new Set([...p,...cs])]),[]);
 
   const myEntry=allPlayers.find(p=>p.uuid===userUUID);
-  const newMatchCount=rawMatches.filter(m=>m.isNew).length;
+  const newMatchCount=(rawMatches||[]).filter(m=>m.isNew).length;
   const dismissToast=(i:number)=>setToasts(p=>p.filter((_,idx)=>idx!==i));
 
   const TABS=[
@@ -1012,8 +1012,8 @@ export default function PaniniSwap() {
             {[
               {label:"Repetidas",val:have.length,color:"#f59e0b"},
               {label:"Buscando",val:want.length,color:"#22d3ee"},
-              {label:"Coleccionistas",val:allPlayers.filter(p=>p.paid).length,color:"#a78bfa"},
-              {label:"Cerca de ti",val:rawMatches.filter(m=>m.distKm!=null&&m.distKm<=10).length,color:"#86efac"},
+              {label:"Coleccionistas",val:(allPlayers||[]).filter(p=>p.paid).length,color:"#a78bfa"},
+              {label:"Cerca de ti",val:(rawMatches||[]).filter(m=>m.distKm!=null&&m.distKm<=10).length,color:"#86efac"},
             ].map(s=>(
               <div key={s.label} style={{background:"#0d1f35",border:"2px solid #0a1628",borderRadius:"12px",padding:"14px",textAlign:"center"}}>
                 <div style={{fontSize:"26px",fontWeight:"900",color:s.color}} aria-hidden="true">{s.val}</div>
