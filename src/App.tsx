@@ -204,10 +204,10 @@ function Toast({notifications,onDismiss}:{notifications:string[];onDismiss:(i:nu
 
 // ─── Hamburger Menu ───────────────────────────────────────────────────────────
 function HamburgerMenu({
-  userName, userPhone, userLoc, userUUID, onClose, onLogout
+  userName, userPhone, userLoc, userUUID, accessGranted, onClose, onLogout
 }:{
   userName:string; userPhone:string; userLoc:Loc|null; userUUID:string;
-  onClose:()=>void; onLogout:()=>void;
+  accessGranted:boolean; onClose:()=>void; onLogout:()=>void;
 }) {
   const [copyLabel,setCopyLabel] = useState("Copiar");
 
@@ -251,21 +251,23 @@ function HamburgerMenu({
           </div>
         </div>
 
-        {/* Código de perfil */}
-        <div style={{background:"#0d0d1a",borderRadius:"12px",padding:"14px",marginBottom:"24px",border:"1px solid #2a2a3d"}}>
-          <div style={{color:"#888",fontSize:"12px",marginBottom:"10px",lineHeight:"1.5"}}>
-            Código para acceder desde otro dispositivo:
+        {/* Código de perfil — solo si tiene acceso */}
+        {accessGranted&&(
+          <div style={{background:"#0d0d1a",borderRadius:"12px",padding:"14px",marginBottom:"24px",border:"1px solid #2a2a3d"}}>
+            <div style={{color:"#888",fontSize:"12px",marginBottom:"10px",lineHeight:"1.5"}}>
+              Código para acceder desde otro dispositivo:
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+              <code style={{color:"#818cf8",fontFamily:"'DM Mono',monospace",fontSize:"20px",fontWeight:"700",letterSpacing:"0.12em",flex:1}}>
+                {shortCode(userUUID)}
+              </code>
+              <button onClick={handleCopy} aria-label="Copiar código de perfil"
+                style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"8px",padding:"7px 12px",color:"#a0a0bc",fontSize:"12px",cursor:"pointer",fontFamily:"inherit",fontWeight:"700",whiteSpace:"nowrap"}}>
+                {copyLabel}
+              </button>
+            </div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-            <code style={{color:"#818cf8",fontFamily:"'DM Mono',monospace",fontSize:"20px",fontWeight:"700",letterSpacing:"0.12em",flex:1}}>
-              {shortCode(userUUID)}
-            </code>
-            <button onClick={handleCopy} aria-label="Copiar código de perfil"
-              style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"8px",padding:"7px 12px",color:"#a0a0bc",fontSize:"12px",cursor:"pointer",fontFamily:"inherit",fontWeight:"700",whiteSpace:"nowrap"}}>
-              {copyLabel}
-            </button>
-          </div>
-        </div>
+        )}
 
         <div style={{flex:1}}/>
 
@@ -564,7 +566,7 @@ export default function PaniniSwap() {
   };
 
   const saveProfile=()=>{
-    if(!nameInput.trim())return;
+    if(!nameInput.trim()||!phoneInput.trim())return;
     lsSet("ps_user",nameInput.trim());lsSet("ps_phone",phoneInput.trim());
     setUserName(nameInput.trim());setUserPhone(phoneInput.trim());setView("main");
   };
@@ -650,14 +652,21 @@ export default function PaniniSwap() {
             </div>
             <div>
               <label htmlFor="setup-phone" style={{display:"block",color:"#e8e8f0",fontSize:"14px",fontWeight:"700",marginBottom:"6px"}}>
-                WhatsApp <span style={{color:"#888",fontWeight:"400"}}>(opcional)</span>
+                WhatsApp <span aria-hidden="true" style={{color:"#f87171"}}>*</span>
               </label>
-              <input id="setup-phone" value={phoneInput} onChange={e=>setPhoneInput(e.target.value)} placeholder="50688887777" type="tel" autoComplete="tel" style={inp}/>
-              <p style={{color:"#666",fontSize:"12px",margin:"6px 0 0",lineHeight:"1.5"}}>Con código de país. Solo visible para tus matches.</p>
+              <input id="setup-phone" value={phoneInput} onChange={e=>setPhoneInput(e.target.value)} placeholder="50688887777" type="tel" autoComplete="tel" required aria-required="true" style={inp}/>
+              <p style={{color:"#666",fontSize:"12px",margin:"6px 0 0",lineHeight:"1.5"}}>Con código de país. Es la forma en que otros coleccionistas te contactarán.</p>
             </div>
           </div>
-          <button onClick={saveProfile} disabled={!nameInput.trim()}
-            style={{width:"100%",marginTop:"20px",background:nameInput.trim()?"#6366f1":"#2a2a3d",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:nameInput.trim()?"#fff":"#666",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:nameInput.trim()?"pointer":"not-allowed",transition:"all 0.2s"}}>
+          {/* Condiciones */}
+          <div style={{marginTop:"16px",padding:"12px 14px",background:"#0d0d1a",borderRadius:"8px",border:"1px solid #2a2a3d"}}>
+            <p style={{color:"#666",fontSize:"11px",lineHeight:"1.6",margin:0}}>
+              Al crear tu perfil aceptas que <strong style={{color:"#888"}}>Panini Swap</strong> es únicamente una plataforma para conectar coleccionistas. No nos hacemos responsables por los intercambios de figuras entre usuarios, la comunicación por WhatsApp, ni por cualquier acuerdo entre las partes.
+            </p>
+          </div>
+
+          <button onClick={saveProfile} disabled={!nameInput.trim()||!phoneInput.trim()}
+            style={{width:"100%",marginTop:"16px",background:(nameInput.trim()&&phoneInput.trim())?"#6366f1":"#2a2a3d",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:(nameInput.trim()&&phoneInput.trim())?"#fff":"#666",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:(nameInput.trim()&&phoneInput.trim())?"pointer":"not-allowed",transition:"all 0.2s"}}>
             Crear perfil →
           </button>
           <div style={{marginTop:"20px",paddingTop:"20px",borderTop:"1px solid #2a2a3d",textAlign:"center"}}>
@@ -742,7 +751,7 @@ export default function PaniniSwap() {
               {accessChecking?"Verificando...":"Activar acceso →"}
             </button>
             <p style={{color:"#666",fontSize:"12px",textAlign:"center",margin:"0 0 12px"}}>¿No tienes código? Escríbenos para obtener el tuyo.</p>
-            <a href="https://wa.me/TUNUMERO?text=Hola%2C%20quiero%20un%20c%C3%B3digo%20para%20Panini%20Swap%20%E2%9A%BD"
+            <a href="https://wa.me/50660582201?text=Hola%2C%20quiero%20un%20c%C3%B3digo%20para%20Panini%20Swap%20%E2%9A%BD"
               target="_blank" rel="noopener noreferrer"
               style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",background:"#25d366",borderRadius:"10px",padding:"12px",color:"#fff",fontWeight:"700",fontSize:"14px",textDecoration:"none",fontFamily:"inherit"}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -758,6 +767,7 @@ export default function PaniniSwap() {
           userPhone={userPhone}
           userLoc={userLoc}
           userUUID={userUUID}
+          accessGranted={accessGranted}
           onClose={()=>setMenuOpen(false)}
           onLogout={handleLogout}
         />
@@ -776,6 +786,12 @@ export default function PaniniSwap() {
           </span>
 
           <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
+            {!accessGranted&&(
+              <button onClick={()=>setShowAccessModal(true)}
+                style={{background:"#f59e0b22",border:"2px solid #f59e0b88",borderRadius:"8px",padding:"6px 10px",color:"#f59e0b",fontFamily:"inherit",fontSize:"12px",fontWeight:"700",cursor:"pointer",whiteSpace:"nowrap" as const,lineHeight:1.3,textAlign:"center" as const}}>
+                🔒 Activar<br/><span style={{fontSize:"11px",fontWeight:"400"}}>₡1.500</span>
+              </button>
+            )}
             <button onClick={accessGranted?publishToFirebase:()=>setShowAccessModal(true)} disabled={saving}
               aria-label={saved?"Cambios guardados":saving?"Guardando cambios":"Guardar cambios"}
               style={{background:!accessGranted?"#6366f1":saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"14px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s",whiteSpace:"nowrap" as const}}>
@@ -849,7 +865,7 @@ export default function PaniniSwap() {
                   Para ver los matches y conectar con otros coleccionistas necesitas un código de acceso.<br/>
                   Escríbenos por WhatsApp para obtener el tuyo.
                 </p>
-                <a href="https://wa.me/TUNUMERO?text=Hola%2C%20quiero%20un%20c%C3%B3digo%20para%20Panini%20Swap%20%E2%9A%BD"
+                <a href="https://wa.me/50660582201?text=Hola%2C%20quiero%20un%20c%C3%B3digo%20para%20Panini%20Swap%20%E2%9A%BD"
                   target="_blank" rel="noopener noreferrer"
                   style={{display:"inline-flex",alignItems:"center",gap:"8px",background:"#25d366",borderRadius:"10px",padding:"12px 24px",color:"#fff",fontWeight:"700",fontSize:"15px",textDecoration:"none",fontFamily:"inherit"}}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -956,6 +972,19 @@ export default function PaniniSwap() {
                   <div><dt style={{display:"inline",color:"#888"}}>Ubicación: </dt><dd style={{display:"inline",color:myEntry.loc?"#86efac":"#555",margin:0}}>{myEntry.loc?"✓ Sí":"No"}</dd></div>
                   <div><dt style={{display:"inline",color:"#888"}}>Actualizado: </dt><dd style={{display:"inline",color:"#555",margin:0}}>{new Date(myEntry.updatedAt).toLocaleDateString()}</dd></div>
                 </dl>
+                {accessGranted&&(
+                  <div style={{marginTop:"14px",background:"#0d0d1a",borderRadius:"8px",padding:"12px 14px",border:"1px solid #3a3a55"}}>
+                    <p style={{color:"#888",fontSize:"12px",margin:"0 0 6px"}}>Tu código de perfil — úsalo para acceder desde otro dispositivo:</p>
+                    <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                      <code style={{color:"#818cf8",fontFamily:"'DM Mono',monospace",fontSize:"18px",fontWeight:"700",letterSpacing:"0.12em"}}>{shortCode(userUUID)}</code>
+                      <button onClick={()=>navigator.clipboard?.writeText(shortCode(userUUID))}
+                        aria-label="Copiar código de perfil"
+                        style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"6px",padding:"4px 10px",color:"#a0a0bc",fontSize:"12px",cursor:"pointer",fontFamily:"inherit"}}>
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </section>
             )}
             </>}
