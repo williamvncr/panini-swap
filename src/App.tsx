@@ -793,9 +793,21 @@ export default function PaniniSwap() {
     window.location.reload();
   };
 
-  const toggleHave=useCallback((c:string)=>setHave(p=>(p||[]).includes(c)?(p||[]).filter(x=>x!==c):[...(p||[]),c]),[]);
+  const toggleHave=useCallback((c:string)=>{
+    setHave(p=>{
+      const cur=p||[];
+      if(cur.includes(c)) return cur.filter(x=>x!==c);
+      // Al agregar a repetidas, quitar de buscadas automáticamente
+      setWant(w=>(w||[]).filter(x=>x!==c));
+      return [...cur,c];
+    });
+  },[]);
   const toggleWant=useCallback((c:string)=>setWant(p=>(p||[]).includes(c)?(p||[]).filter(x=>x!==c):[...(p||[]),c]),[]);
-  const addToHave=useCallback((cs:string[])=>setHave(p=>[...new Set([...p,...cs])]),[]);
+  const addToHave=useCallback((cs:string[])=>{
+    setHave(p=>[...new Set([...(p||[]),...cs])]);
+    // Quitar de buscadas todas las que se agregan a repetidas
+    setWant(w=>(w||[]).filter(x=>!cs.includes(x)));
+  },[]);
   const addToWant=useCallback((cs:string[])=>setWant(p=>[...new Set([...p,...cs])]),[]);
 
   const myEntry=allPlayers.find(p=>p.uuid===userUUID);
