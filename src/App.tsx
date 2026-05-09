@@ -7,12 +7,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCWcm56cTrPU2sLJhuNa9pWekCEc6hDiWI",
-  authDomain: "panini-swap.firebaseapp.com",
-  projectId: "panini-swap",
-  storageBucket: "panini-swap.firebasestorage.app",
-  messagingSenderId: "51835153414",
-  appId: "1:51835153414:web:cd38e4189a9d04f2246787",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
@@ -202,13 +202,72 @@ function Toast({notifications,onDismiss}:{notifications:string[];onDismiss:(i:nu
   );
 }
 
+// ─── Feedback Section ─────────────────────────────────────────────────────────
+function FeedbackSection({userName}:{userName:string}) {
+  const [text,setText] = useState("");
+  const [sent,setSent] = useState(false);
+  const [sending,setSending] = useState(false);
+
+  const handleSend = async() => {
+    if(!text.trim()||sending) return;
+    setSending(true);
+    try {
+      const entry = {
+        from: userName||"Anónimo",
+        message: text.trim(),
+        sentAt: Date.now(),
+      };
+      await setDoc(doc(db,"feedback",`${Date.now()}-${Math.random().toString(36).slice(2)}`), entry);
+      setSent(true);
+      setText("");
+    } catch(e) {
+      console.error(e);
+    }
+    setSending(false);
+  };
+
+  return (
+    <div style={{marginBottom:"16px",borderTop:"1px solid #1a3050",paddingTop:"16px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"10px"}}>
+        <span aria-hidden="true" style={{fontSize:"16px"}}>💡</span>
+        <span style={{color:"#e8e8f0",fontWeight:"700",fontSize:"14px"}}>Recomendaciones</span>
+      </div>
+      <p style={{color:"#a0a0bc",fontSize:"12px",lineHeight:"1.5",margin:"0 0 10px"}}>
+        ¿Tenés alguna idea para mejorar la app? Nos encantaría escucharte.
+      </p>
+      {sent ? (
+        <div style={{background:"#0f2318",border:"1px solid #4ade8044",borderRadius:"8px",padding:"12px",textAlign:"center"}}>
+          <span style={{fontSize:"20px"}}>🙌</span>
+          <p style={{color:"#4ade80",fontSize:"13px",fontWeight:"700",margin:"6px 0 0"}}>¡Gracias por tu recomendación!</p>
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+          <textarea
+            value={text}
+            onChange={e=>setText(e.target.value)}
+            placeholder="Ej: Sería bueno poder buscar por nombre de jugador..."
+            rows={3}
+            style={{width:"100%",background:"#0a1628",border:"2px solid #2a4a6b",borderRadius:"8px",padding:"10px 12px",color:"#e8e8f0",fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:"13px",outline:"none",resize:"none",boxSizing:"border-box" as const,lineHeight:"1.5"}}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!text.trim()||sending}
+            style={{background:text.trim()&&!sending?"#e03c2d":"#1a3050",border:"2px solid transparent",borderRadius:"8px",padding:"10px",color:text.trim()&&!sending?"#fff":"#555",fontFamily:"inherit",fontSize:"13px",fontWeight:"700",cursor:text.trim()&&!sending?"pointer":"not-allowed",transition:"all 0.2s"}}>
+            {sending?"Enviando...":"Enviar recomendación"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Hamburger Menu ───────────────────────────────────────────────────────────
 function HamburgerMenu({
   userName, userPhone, userLoc, userUUID, accessGranted, onClose, onLogout
 }:{
   userName:string; userPhone:string; userLoc:Loc|null; userUUID:string;
   accessGranted:boolean; onClose:()=>void; onLogout:()=>void;
-}) {
+})  {
   const [copyLabel,setCopyLabel] = useState("Copiar");
 
   const handleCopy = () => {
@@ -270,6 +329,9 @@ function HamburgerMenu({
         )}
 
         <div style={{flex:1}}/>
+
+        {/* Recomendaciones */}
+        <FeedbackSection userName={userName}/>
 
         {/* Cerrar sesión */}
         <button onClick={onLogout}
