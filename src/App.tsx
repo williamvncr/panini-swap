@@ -734,24 +734,17 @@ export default function PaniniSwap() {
       const data=snap.data();
       if(data.used){setAccessError("Este código ya fue utilizado.");setAccessChecking(false);return false;}
       await updateDoc(ref,{used:true,usedBy:uuid,usedAt:Date.now()});
-      // Escribir paid:true — si el doc no existe lo crea, si existe lo actualiza
+      // Escribir paid:true — setDoc con merge crea o actualiza sin importar si existe
       const playerRef=doc(db,"players",uuid);
-      const playerSnap=await getDoc(playerRef);
-      if(playerSnap.exists()){
-        // Doc existe — solo actualizar paid
-        await updateDoc(playerRef,{paid:true});
-      } else {
-        // Doc no existe aún — crear con datos mínimos
-        await setDoc(playerRef,{
-          uuid,
-          name:lsGet("ps_user")||"",
-          phone:lsGet("ps_phone")||"",
-          have:[],
-          want:[],
-          paid:true,
-          updatedAt:Date.now()
-        });
-      }
+      await setDoc(playerRef,{
+        uuid,
+        name:lsGet("ps_user")||"",
+        phone:lsGet("ps_phone")||"",
+        have:[],
+        want:[],
+        paid:true,
+        updatedAt:Date.now()
+      },{merge:true});
       setAccessGranted(true);
       lsSet("ps_access","1");
       setAccessChecking(false);
@@ -1068,7 +1061,7 @@ export default function PaniniSwap() {
         </header>
 
         {/* ── Banner promocional — primeros 25 usuarios gratis ── */}
-        {(allPlayers||[]).filter(p=>p.paid).length < 25 && (
+        {!accessGranted && (allPlayers||[]).filter(p=>p.paid).length < 25 && (
           <div style={{background:"#14532d",borderBottom:"2px solid #4ade8044",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",flexWrap:"wrap" as const}}>
             <div style={{display:"flex",alignItems:"center",gap:"10px",flex:1,minWidth:0}}>
               <span aria-hidden="true" style={{fontSize:"18px",flexShrink:0}}>🎁</span>
