@@ -74,7 +74,7 @@ const ALL_CODES = new Set(SECTIONS.flatMap(s => s.codes));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Loc { lat: number; lon: number; }
-interface Player { uuid: string; name: string; phone?: string; have: string[]; want: string[]; loc?: Loc; updatedAt: number; }
+interface Player { uuid: string; name: string; phone?: string; have: string[]; want: string[]; loc?: Loc; updatedAt: number; paid?: boolean; }
 interface Match extends Player { canGive: string[]; canReceive: string[]; score: number; distKm: number | null; isNew: boolean; }
 
 // ─── Geo ──────────────────────────────────────────────────────────────────────
@@ -135,8 +135,8 @@ const GLOBAL_CSS=`
     position:absolute;top:0;right:0;
     width:min(300px,85vw);
     height:100vh;
-    background:#13131f;
-    border-left:2px solid #2a2a3d;
+    background:#0d1f35;
+    border-left:2px solid #1a3050;
     padding:20px;
     display:flex;flex-direction:column;gap:0;
     animation:slideInRight 0.22s ease;
@@ -150,7 +150,7 @@ const GLOBAL_CSS=`
   .country-pill{
     border-radius:20px;padding:6px 12px;font-size:13px;cursor:pointer;
     font-family:inherit;font-weight:400;white-space:nowrap;
-    border:2px solid #3a3a55;background:#1e1e35;color:#a0a0bc;
+    border:2px solid #2a4a6b;background:#0a1628;color:#a0a0bc;
     transition:transform 0.1s;
   }
   .country-pill.active{font-weight:700;}
@@ -188,7 +188,7 @@ function Toast({notifications,onDismiss}:{notifications:string[];onDismiss:(i:nu
     <div role="region" aria-label="Notificaciones" aria-live="polite" aria-atomic="false"
       style={{position:"fixed",bottom:"24px",right:"24px",zIndex:999,display:"flex",flexDirection:"column",gap:"8px",maxWidth:"320px"}}>
       {notifications.map((n,i)=>(
-        <div key={i} role="alert" style={{background:"#1e1e35",border:"2px solid #6366f1",borderRadius:"12px",padding:"14px 16px",boxShadow:"0 8px 32px #00000088",animation:"sIn 0.3s ease",display:"flex",gap:"12px",alignItems:"flex-start"}}>
+        <div key={i} role="alert" style={{background:"#0a1628",border:"2px solid #e03c2d",borderRadius:"12px",padding:"14px 16px",boxShadow:"0 8px 32px #00000088",animation:"sIn 0.3s ease",display:"flex",gap:"12px",alignItems:"flex-start"}}>
           <span aria-hidden="true" style={{fontSize:"20px"}}>🔔</span>
           <div style={{flex:1}}>
             <div style={{color:"#e8e8f0",fontWeight:"700",fontSize:"14px",marginBottom:"3px"}}>Nuevo match</div>
@@ -225,13 +225,13 @@ function HamburgerMenu({
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"24px"}}>
           <span style={{color:"#e8e8f0",fontWeight:"900",fontSize:"16px"}}>Mi perfil</span>
           <button onClick={onClose} aria-label="Cerrar menú"
-            style={{background:"none",border:"2px solid #3a3a55",borderRadius:"8px",padding:"5px 10px",color:"#a0a0bc",cursor:"pointer",fontSize:"16px",lineHeight:1}}>
+            style={{background:"none",border:"2px solid #2a4a6b",borderRadius:"8px",padding:"5px 10px",color:"#a0a0bc",cursor:"pointer",fontSize:"16px",lineHeight:1}}>
             ✕
           </button>
         </div>
 
         {/* Info del usuario */}
-        <div style={{background:"#0d0d1a",borderRadius:"12px",padding:"14px",marginBottom:"12px",border:"1px solid #2a2a3d"}}>
+        <div style={{background:"#0d0d1a",borderRadius:"12px",padding:"14px",marginBottom:"12px",border:"1px solid #1a3050"}}>
           <div style={{color:"#e8e8f0",fontWeight:"700",fontSize:"17px",marginBottom:"10px"}}>{userName}</div>
           <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
             {userPhone
@@ -253,16 +253,16 @@ function HamburgerMenu({
 
         {/* Código de perfil — solo si tiene acceso */}
         {accessGranted&&(
-          <div style={{background:"#0d0d1a",borderRadius:"12px",padding:"14px",marginBottom:"24px",border:"1px solid #2a2a3d"}}>
+          <div style={{background:"#0d0d1a",borderRadius:"12px",padding:"14px",marginBottom:"24px",border:"1px solid #1a3050"}}>
             <div style={{color:"#888",fontSize:"12px",marginBottom:"10px",lineHeight:"1.5"}}>
               Código para acceder desde otro dispositivo:
             </div>
             <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-              <code style={{color:"#818cf8",fontFamily:"'DM Mono',monospace",fontSize:"20px",fontWeight:"700",letterSpacing:"0.12em",flex:1}}>
+              <code style={{color:"#a78bfa",fontFamily:"'DM Mono',monospace",fontSize:"20px",fontWeight:"700",letterSpacing:"0.12em",flex:1}}>
                 {shortCode(userUUID)}
               </code>
               <button onClick={handleCopy} aria-label="Copiar código de perfil"
-                style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"8px",padding:"7px 12px",color:"#a0a0bc",fontSize:"12px",cursor:"pointer",fontFamily:"inherit",fontWeight:"700",whiteSpace:"nowrap"}}>
+                style={{background:"#0a1628",border:"1px solid #2a4a6b",borderRadius:"8px",padding:"7px 12px",color:"#a0a0bc",fontSize:"12px",cursor:"pointer",fontFamily:"inherit",fontWeight:"700",whiteSpace:"nowrap"}}>
                 {copyLabel}
               </button>
             </div>
@@ -273,7 +273,7 @@ function HamburgerMenu({
 
         {/* Cerrar sesión */}
         <button onClick={onLogout}
-          style={{width:"100%",background:"none",border:"2px solid #3a3a55",borderRadius:"10px",padding:"13px",color:"#f87171",fontFamily:"inherit",fontSize:"15px",fontWeight:"700",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px"}}>
+          style={{width:"100%",background:"none",border:"2px solid #2a4a6b",borderRadius:"10px",padding:"13px",color:"#f87171",fontFamily:"inherit",fontSize:"15px",fontWeight:"700",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px"}}>
           <span aria-hidden="true">↩</span> Cerrar sesión
         </button>
       </div>
@@ -302,8 +302,8 @@ function StickerPanel({selected,onToggle,accent,labelPrefix}:{selected:string[];
                   aria-label={`${s.label}${count>0?`, ${count} seleccionadas`:""}`}
                   className={`country-pill${isActive?" active":""}${count>0&&!isActive?" has-count":""}`}
                   style={{
-                    background:isActive?accent:count>0?accent+"33":"#1e1e35",
-                    borderColor:isActive?accent:count>0?accent+"88":"#3a3a55",
+                    background:isActive?accent:count>0?accent+"33":"#0a1628",
+                    borderColor:isActive?accent:count>0?accent+"88":"#2a4a6b",
                     color:isActive?(isDark?"#0d0d1a":"#fff"):count>0?accent:"#a0a0bc",
                   }}>
                   <span aria-hidden="true">{s.flag}</span> {s.prefix}{count>0&&!isActive?` (${count})`:""}
@@ -323,7 +323,7 @@ function StickerPanel({selected,onToggle,accent,labelPrefix}:{selected:string[];
           return (
             <button key={code} onClick={()=>onToggle(code)} aria-pressed={isSel}
               aria-label={`${code}${isSel?`, quitar de ${labelPrefix}s`:`, agregar a ${labelPrefix}s`}`}
-              style={{height:"46px",borderRadius:"8px",border:`2px solid ${isSel?accent:"#3a3a55"}`,background:isSel?accent:"#1e1e35",color:isSel?(isDark?"#0d0d1a":"#fff"):"#a0a0bc",fontFamily:"'DM Mono',monospace",fontSize:"12px",fontWeight:isSel?"700":"400",cursor:"pointer",transition:"transform 0.1s",transform:isSel?"scale(1.06)":"scale(1)"}}>
+              style={{height:"46px",borderRadius:"8px",border:`2px solid ${isSel?accent:"#2a4a6b"}`,background:isSel?accent:"#0a1628",color:isSel?(isDark?"#0d0d1a":"#fff"):"#a0a0bc",fontFamily:"'DM Mono',monospace",fontSize:"12px",fontWeight:isSel?"700":"400",cursor:"pointer",transition:"transform 0.1s",transform:isSel?"scale(1.06)":"scale(1)"}}>
               {code.replace(section.prefix,"")}
             </button>
           );
@@ -355,7 +355,7 @@ function RangeSelector({onAdd,accent}:{onAdd:(codes:string[])=>void;accent:strin
         <input id="range-input" value={val} onChange={e=>{setVal(e.target.value);setError("");}}
           onKeyDown={e=>e.key==="Enter"&&apply()} placeholder="ej: ARG1-5, BRA7, MEX1-3"
           aria-describedby={error?"range-error":undefined} aria-invalid={!!error}
-          style={{flex:1,background:"#1e1e35",border:`2px solid ${error?"#f87171":"#3a3a55"}`,borderRadius:"8px",padding:"9px 12px",color:"#e8e8f0",fontFamily:"'DM Mono',monospace",fontSize:"13px",outline:"none"}}/>
+          style={{flex:1,background:"#0a1628",border:`2px solid ${error?"#f87171":"#2a4a6b"}`,borderRadius:"8px",padding:"9px 12px",color:"#e8e8f0",fontFamily:"'DM Mono',monospace",fontSize:"13px",outline:"none"}}/>
         <button onClick={apply} style={{background:accent,border:"2px solid transparent",borderRadius:"8px",padding:"9px 14px",color:isDark?"#0d0d1a":"#fff",fontWeight:"700",cursor:"pointer",fontSize:"13px",whiteSpace:"nowrap" as const,fontFamily:"inherit"}}>
           + Agregar
         </button>
@@ -371,12 +371,12 @@ function MatchCard({match,myName}:{match:Match;myName:string}) {
   const distLabel=fmtDist(match.distKm);
   return (
     <article aria-labelledby={`mh-${match.name}`}
-      style={{background:"#13131f",border:`2px solid ${expanded?"#6366f1":"#2a2a3d"}`,borderRadius:"12px",padding:"16px",marginBottom:"12px",transition:"border-color 0.2s"}}>
+      style={{background:"#0d1f35",border:`2px solid ${expanded?"#e03c2d":"#1a3050"}`,borderRadius:"12px",padding:"16px",marginBottom:"12px",transition:"border-color 0.2s"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div style={{display:"flex",flexDirection:"column",gap:"6px",flex:1}}>
           <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap" as const}}>
             <h3 id={`mh-${match.name}`} style={{color:"#e8e8f0",fontWeight:"700",fontSize:"15px",margin:0}}>{match.name}</h3>
-            {match.isNew&&<span style={{fontSize:"11px",color:"#fff",background:"#6366f1",padding:"2px 8px",borderRadius:"20px",fontWeight:"700"}} aria-label="Match nuevo">NUEVO</span>}
+            {match.isNew&&<span style={{fontSize:"11px",color:"#fff",background:"#e03c2d",padding:"2px 8px",borderRadius:"20px",fontWeight:"700"}} aria-label="Match nuevo">NUEVO</span>}
             {match.phone&&<span style={{fontSize:"11px",color:"#25d366",background:"#25d36622",padding:"2px 8px",borderRadius:"20px"}} aria-label="Tiene WhatsApp">WA</span>}
           </div>
           {distLabel
@@ -389,7 +389,7 @@ function MatchCard({match,myName}:{match:Match;myName:string}) {
             <span style={{color:"#22d3ee"}} aria-label={`Le puedes dar ${match.canReceive.length} figuras`}>Le das: <strong>{match.canReceive.length}</strong></span>
           </div>
           <button onClick={()=>setExpanded(!expanded)} aria-expanded={expanded}
-            style={{background:"#1e1e35",border:"2px solid #3a3a55",borderRadius:"8px",padding:"4px 10px",color:"#a0a0bc",cursor:"pointer",fontSize:"12px",fontFamily:"inherit"}}>
+            style={{background:"#0a1628",border:"2px solid #2a4a6b",borderRadius:"8px",padding:"4px 10px",color:"#a0a0bc",cursor:"pointer",fontSize:"12px",fontFamily:"inherit"}}>
             {expanded?"Ver menos ▲":"Ver detalle ▼"}
           </button>
         </div>
@@ -415,7 +415,7 @@ function MatchCard({match,myName}:{match:Match;myName:string}) {
               Contactar por WhatsApp
             </a>
           ):(
-            <p style={{display:"flex",alignItems:"center",gap:"8px",background:"#1e1e35",borderRadius:"8px",padding:"10px 16px",color:"#888",fontSize:"13px",margin:0}}>
+            <p style={{display:"flex",alignItems:"center",gap:"8px",background:"#0a1628",borderRadius:"8px",padding:"10px 16px",color:"#888",fontSize:"13px",margin:0}}>
               <span aria-hidden="true">📵</span> Este coleccionista no registró WhatsApp
             </p>
           )}
@@ -554,6 +554,14 @@ export default function PaniniSwap() {
       const data=snap.data();
       if(data.used){setAccessError("Este código ya fue utilizado.");setAccessChecking(false);return false;}
       await updateDoc(ref,{used:true,usedBy:uuid,usedAt:Date.now()});
+      // Marcar al jugador como pagado en Firebase
+      if(userName){
+        const playerRef=doc(db,"players",uuid);
+        const playerSnap=await getDoc(playerRef);
+        if(playerSnap.exists()){
+          await updateDoc(playerRef,{paid:true});
+        }
+      }
       setAccessGranted(true);
       lsSet("ps_access","1");
       setAccessChecking(false);
@@ -589,7 +597,7 @@ export default function PaniniSwap() {
   const publishToFirebase=async()=>{
     if(!userName||saving)return;
     setSaving(true);
-    const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have,want,updatedAt:Date.now()};
+    const entry:Player={uuid:userUUID,name:userName,phone:userPhone,have,want,updatedAt:Date.now(),paid:accessGranted||undefined};
     if(userLoc)entry.loc=userLoc;
     try{
       await setDoc(doc(db,"players",userUUID),entry);
@@ -615,10 +623,10 @@ export default function PaniniSwap() {
   const TABS=[
     {id:"have" as const,label:"Mis Repetidas",color:"#f59e0b"},
     {id:"want" as const,label:"Las que Busco",color:"#22d3ee"},
-    {id:"match" as const,label:`Matches${rawMatches.length?` (${rawMatches.length})`:""}`  ,color:"#6366f1"},
+    {id:"match" as const,label:`Matches${rawMatches.length?` (${rawMatches.length})`:""}`  ,color:"#e03c2d"},
   ];
   const DIST_OPTS:[string,number|null][]=[["Todos",null],["<2 km",2],["<10 km",10],["<30 km",30],["<100 km",100]];
-  const inp:React.CSSProperties={width:"100%",background:"#1e1e35",border:"2px solid #3a3a55",borderRadius:"10px",padding:"14px 16px",color:"#e8e8f0",fontFamily:"inherit",fontSize:"16px",outline:"none",boxSizing:"border-box"};
+  const inp:React.CSSProperties={width:"100%",background:"#0a1628",border:"2px solid #2a4a6b",borderRadius:"10px",padding:"14px 16px",color:"#e8e8f0",fontFamily:"inherit",fontSize:"16px",outline:"none",boxSizing:"border-box"};
 
   // ── Loading ──────────────────────────────────────────────────────────────────
   if(appLoading)return(
@@ -626,7 +634,7 @@ export default function PaniniSwap() {
       <style>{GLOBAL_CSS}</style>
       <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0d0d1a"}} role="status" aria-label="Cargando aplicación">
         <div style={{textAlign:"center"}}>
-          <div style={{width:"40px",height:"40px",border:"3px solid #3a3a55",borderTopColor:"#6366f1",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 16px"}} aria-hidden="true"/>
+          <div style={{width:"40px",height:"40px",border:"3px solid #1a3050",borderTopColor:"#e03c2d",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 16px"}} aria-hidden="true"/>
           <p style={{color:"#a0a0bc",fontFamily:"'DM Mono',monospace",fontSize:"14px",margin:0}}>Conectando…</p>
         </div>
       </div>
@@ -639,7 +647,7 @@ export default function PaniniSwap() {
       <style>{GLOBAL_CSS}</style>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@400;700;900&display=swap" rel="stylesheet"/>
       <main style={{minHeight:"100vh",background:"#0d0d1a",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bricolage Grotesque',sans-serif",padding:"24px"}}>
-        <div style={{background:"#13131f",border:"2px solid #2a2a3d",borderRadius:"20px",padding:"48px 40px",maxWidth:"440px",width:"100%"}}>
+        <div style={{background:"#0d1f35",border:"2px solid #1a3050",borderRadius:"20px",padding:"48px 40px",maxWidth:"440px",width:"100%"}}>
           <div aria-hidden="true" style={{fontSize:"52px",marginBottom:"12px",textAlign:"center"}}>⚽</div>
           <h1 style={{color:"#e8e8f0",margin:"0 0 4px",fontSize:"28px",fontWeight:"900",textAlign:"center"}}>Panini Swap</h1>
           <p style={{color:"#666",fontSize:"13px",margin:"0 0 28px",textAlign:"center"}}>FIFA World Cup 2026</p>
@@ -659,20 +667,20 @@ export default function PaniniSwap() {
             </div>
           </div>
           {/* Condiciones */}
-          <div style={{marginTop:"16px",padding:"12px 14px",background:"#0d0d1a",borderRadius:"8px",border:"1px solid #2a2a3d"}}>
+          <div style={{marginTop:"16px",padding:"12px 14px",background:"#0d0d1a",borderRadius:"8px",border:"1px solid #1a3050"}}>
             <p style={{color:"#666",fontSize:"11px",lineHeight:"1.6",margin:0}}>
               Al crear tu perfil aceptas que <strong style={{color:"#888"}}>Panini Swap</strong> es únicamente una plataforma para conectar coleccionistas. No nos hacemos responsables por los intercambios de figuras entre usuarios, la comunicación por WhatsApp, ni por cualquier acuerdo entre las partes.
             </p>
           </div>
 
           <button onClick={saveProfile} disabled={!nameInput.trim()||!phoneInput.trim()}
-            style={{width:"100%",marginTop:"16px",background:(nameInput.trim()&&phoneInput.trim())?"#6366f1":"#2a2a3d",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:(nameInput.trim()&&phoneInput.trim())?"#fff":"#666",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:(nameInput.trim()&&phoneInput.trim())?"pointer":"not-allowed",transition:"all 0.2s"}}>
+            style={{width:"100%",marginTop:"16px",background:(nameInput.trim()&&phoneInput.trim())?"#e03c2d":"#1a3050",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:(nameInput.trim()&&phoneInput.trim())?"#fff":"#666",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:(nameInput.trim()&&phoneInput.trim())?"pointer":"not-allowed",transition:"all 0.2s"}}>
             Crear perfil →
           </button>
-          <div style={{marginTop:"20px",paddingTop:"20px",borderTop:"1px solid #2a2a3d",textAlign:"center"}}>
+          <div style={{marginTop:"20px",paddingTop:"20px",borderTop:"1px solid #1a3050",textAlign:"center"}}>
             <p style={{color:"#666",fontSize:"13px",margin:"0 0 10px"}}>¿Ya tienes un perfil en otro dispositivo?</p>
             <button onClick={()=>setView("restore")}
-              style={{background:"none",border:"2px solid #3a3a55",borderRadius:"10px",padding:"10px 20px",color:"#a0a0bc",fontFamily:"inherit",fontSize:"14px",cursor:"pointer",fontWeight:"700"}}>
+              style={{background:"none",border:"2px solid #2a4a6b",borderRadius:"10px",padding:"10px 20px",color:"#a0a0bc",fontFamily:"inherit",fontSize:"14px",cursor:"pointer",fontWeight:"700"}}>
               Restaurar con código
             </button>
           </div>
@@ -687,7 +695,7 @@ export default function PaniniSwap() {
       <style>{GLOBAL_CSS}</style>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:wght@400;700;900&display=swap" rel="stylesheet"/>
       <main style={{minHeight:"100vh",background:"#0d0d1a",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bricolage Grotesque',sans-serif",padding:"24px"}}>
-        <div style={{background:"#13131f",border:"2px solid #2a2a3d",borderRadius:"20px",padding:"48px 40px",maxWidth:"440px",width:"100%"}}>
+        <div style={{background:"#0d1f35",border:"2px solid #1a3050",borderRadius:"20px",padding:"48px 40px",maxWidth:"440px",width:"100%"}}>
           <div aria-hidden="true" style={{fontSize:"40px",marginBottom:"12px",textAlign:"center"}}>🔑</div>
           <h1 style={{color:"#e8e8f0",margin:"0 0 8px",fontSize:"24px",fontWeight:"900",textAlign:"center"}}>Restaurar perfil</h1>
           <p style={{color:"#a0a0bc",fontSize:"14px",margin:"0 0 28px",lineHeight:"1.6",textAlign:"center"}}>
@@ -705,11 +713,11 @@ export default function PaniniSwap() {
             {restoreError&&<p role="alert" style={{color:"#f87171",fontSize:"13px",margin:"8px 0 0"}}>{restoreError}</p>}
           </div>
           <button onClick={restoreProfile}
-            style={{width:"100%",marginTop:"16px",background:"#6366f1",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:"#fff",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:"pointer"}}>
+            style={{width:"100%",marginTop:"16px",background:"#e03c2d",border:"2px solid transparent",borderRadius:"10px",padding:"14px",color:"#fff",fontFamily:"inherit",fontSize:"16px",fontWeight:"700",cursor:"pointer"}}>
             Restaurar perfil →
           </button>
           <button onClick={()=>setView("setup")}
-            style={{width:"100%",marginTop:"10px",background:"none",border:"2px solid #3a3a55",borderRadius:"10px",padding:"12px",color:"#a0a0bc",fontFamily:"inherit",fontSize:"14px",cursor:"pointer"}}>
+            style={{width:"100%",marginTop:"10px",background:"none",border:"2px solid #2a4a6b",borderRadius:"10px",padding:"12px",color:"#a0a0bc",fontFamily:"inherit",fontSize:"14px",cursor:"pointer"}}>
             ← Volver
           </button>
         </div>
@@ -728,7 +736,7 @@ export default function PaniniSwap() {
       {showAccessModal&&(
         <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}
           onClick={()=>{setShowAccessModal(false);setAccessError("");setAccessCode("");}}>
-          <div style={{background:"#13131f",border:"2px solid #2a2a3d",borderRadius:"20px",padding:"32px 28px",maxWidth:"400px",width:"100%",fontFamily:"'Bricolage Grotesque',sans-serif"}}
+          <div style={{background:"#0d1f35",border:"2px solid #1a3050",borderRadius:"20px",padding:"32px 28px",maxWidth:"400px",width:"100%",fontFamily:"'Bricolage Grotesque',sans-serif"}}
             onClick={e=>e.stopPropagation()}>
             <div aria-hidden="true" style={{fontSize:"36px",textAlign:"center",marginBottom:"12px"}}>🔒</div>
             <h2 style={{color:"#e8e8f0",fontWeight:"900",fontSize:"20px",textAlign:"center",margin:"0 0 8px"}}>Código de acceso</h2>
@@ -741,13 +749,13 @@ export default function PaniniSwap() {
               onKeyDown={e=>e.key==="Enter"&&validateAccessCode(userUUID).then(ok=>{if(ok){setShowAccessModal(false);publishToFirebase();}})}
               placeholder="Ej: SWAP-4X9K"
               autoFocus
-              style={{width:"100%",background:"#1e1e35",border:`2px solid ${accessError?"#f87171":"#3a3a55"}`,borderRadius:"10px",padding:"14px 16px",color:"#e8e8f0",fontFamily:"'DM Mono',monospace",fontSize:"16px",outline:"none",boxSizing:"border-box" as const,letterSpacing:"0.08em",marginBottom:"8px"}}
+              style={{width:"100%",background:"#0a1628",border:`2px solid ${accessError?"#f87171":"#2a4a6b"}`,borderRadius:"10px",padding:"14px 16px",color:"#e8e8f0",fontFamily:"'DM Mono',monospace",fontSize:"16px",outline:"none",boxSizing:"border-box" as const,letterSpacing:"0.08em",marginBottom:"8px"}}
             />
             {accessError&&<p role="alert" style={{color:"#f87171",fontSize:"13px",margin:"0 0 12px"}}>{accessError}</p>}
             <button
               onClick={()=>validateAccessCode(userUUID).then(ok=>{if(ok){setShowAccessModal(false);publishToFirebase();}})}
               disabled={!accessCode.trim()||accessChecking}
-              style={{width:"100%",background:accessCode.trim()&&!accessChecking?"#6366f1":"#2a2a3d",border:"2px solid transparent",borderRadius:"10px",padding:"13px",color:accessCode.trim()&&!accessChecking?"#fff":"#666",fontFamily:"inherit",fontSize:"15px",fontWeight:"700",cursor:accessCode.trim()&&!accessChecking?"pointer":"not-allowed",marginBottom:"10px"}}>
+              style={{width:"100%",background:accessCode.trim()&&!accessChecking?"#e03c2d":"#1a3050",border:"2px solid transparent",borderRadius:"10px",padding:"13px",color:accessCode.trim()&&!accessChecking?"#fff":"#666",fontFamily:"inherit",fontSize:"15px",fontWeight:"700",cursor:accessCode.trim()&&!accessChecking?"pointer":"not-allowed",marginBottom:"10px"}}>
               {accessChecking?"Verificando...":"Activar acceso →"}
             </button>
             <p style={{color:"#666",fontSize:"12px",textAlign:"center",margin:"0 0 12px"}}>¿No tienes código? Escríbenos para obtener el tuyo.</p>
@@ -780,7 +788,7 @@ export default function PaniniSwap() {
       <div style={{minHeight:"100vh",background:"#0d0d1a",fontFamily:"'Bricolage Grotesque',sans-serif",color:"#e8e8f0",paddingBottom:"48px"}}>
 
         {/* ── Header limpio: logo | Guardar + hamburger ── */}
-        <header style={{background:"#13131f",borderBottom:"2px solid #1e1e2e",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10,gap:"10px"}}>
+        <header style={{background:"#0d1f35",borderBottom:"2px solid #0a1628",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10,gap:"10px"}}>
           <span style={{fontSize:"17px",fontWeight:"900",whiteSpace:"nowrap" as const,flexShrink:0}}>
             <span aria-hidden="true">⚽</span> Panini Swap
           </span>
@@ -788,13 +796,13 @@ export default function PaniniSwap() {
           <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
             {!accessGranted&&(
               <button onClick={()=>setShowAccessModal(true)}
-                style={{background:"#f59e0b22",border:"2px solid #f59e0b88",borderRadius:"8px",padding:"6px 10px",color:"#f59e0b",fontFamily:"inherit",fontSize:"12px",fontWeight:"700",cursor:"pointer",whiteSpace:"nowrap" as const,lineHeight:1.3,textAlign:"center" as const}}>
+                style={{background:"#e03c2d22",border:"2px solid #e03c2d88",borderRadius:"8px",padding:"6px 10px",color:"#ff7b6e",fontFamily:"inherit",fontSize:"12px",fontWeight:"700",cursor:"pointer",whiteSpace:"nowrap" as const,lineHeight:1.3,textAlign:"center" as const}}>
                 🔒 Activar<br/><span style={{fontSize:"11px",fontWeight:"400"}}>₡1.500</span>
               </button>
             )}
             <button onClick={accessGranted?publishToFirebase:()=>setShowAccessModal(true)} disabled={saving}
               aria-label={saved?"Cambios guardados":saving?"Guardando cambios":"Guardar cambios"}
-              style={{background:!accessGranted?"#6366f1":saved?"#166534":saving?"#2a2a3d":"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"14px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s",whiteSpace:"nowrap" as const}}>
+              style={{background:!accessGranted?"#e03c2d":saved?"#14532d":saving?"#1a3050":"#e03c2d",border:"2px solid transparent",borderRadius:"8px",padding:"8px 16px",color:saved?"#86efac":saving?"#666":"#fff",fontWeight:"700",fontSize:"14px",cursor:saving?"default":"pointer",fontFamily:"inherit",transition:"all 0.3s",whiteSpace:"nowrap" as const}}>
               {!accessGranted?"🔒 Guardar":saved?"✓ Guardado":saving?"Guardando...":"Guardar"}
             </button>
 
@@ -803,7 +811,7 @@ export default function PaniniSwap() {
               onClick={()=>setMenuOpen(true)}
               aria-label="Abrir menú de perfil"
               aria-expanded={menuOpen}
-              style={{background:"#1e1e35",border:"2px solid #3a3a55",borderRadius:"8px",padding:"0",color:"#a0a0bc",cursor:"pointer",display:"flex",flexDirection:"column",gap:"4px",alignItems:"center",justifyContent:"center",width:"40px",height:"40px",flexShrink:0}}>
+              style={{background:"#0a1628",border:"2px solid #2a4a6b",borderRadius:"8px",padding:"0",color:"#a0a0bc",cursor:"pointer",display:"flex",flexDirection:"column",gap:"4px",alignItems:"center",justifyContent:"center",width:"40px",height:"40px",flexShrink:0}}>
               <span style={{display:"block",width:"16px",height:"2px",background:"#a0a0bc",borderRadius:"2px"}}/>
               <span style={{display:"block",width:"16px",height:"2px",background:"#a0a0bc",borderRadius:"2px"}}/>
               <span style={{display:"block",width:"16px",height:"2px",background:"#a0a0bc",borderRadius:"2px"}}/>
@@ -818,10 +826,10 @@ export default function PaniniSwap() {
             {[
               {label:"Repetidas",val:have.length,color:"#f59e0b"},
               {label:"Buscando",val:want.length,color:"#22d3ee"},
-              {label:"Coleccionistas",val:allPlayers.length,color:"#818cf8"},
+              {label:"Coleccionistas",val:allPlayers.filter(p=>p.paid).length,color:"#a78bfa"},
               {label:"Cerca de ti",val:rawMatches.filter(m=>m.distKm!=null&&m.distKm<=10).length,color:"#86efac"},
             ].map(s=>(
-              <div key={s.label} style={{background:"#13131f",border:"2px solid #1e1e2e",borderRadius:"12px",padding:"14px",textAlign:"center"}}>
+              <div key={s.label} style={{background:"#0d1f35",border:"2px solid #0a1628",borderRadius:"12px",padding:"14px",textAlign:"center"}}>
                 <div style={{fontSize:"26px",fontWeight:"900",color:s.color}} aria-hidden="true">{s.val}</div>
                 <div style={{fontSize:"12px",color:"#a0a0bc",marginTop:"2px"}} aria-label={`${s.val} ${s.label}`}>{s.label}</div>
               </div>
@@ -829,7 +837,7 @@ export default function PaniniSwap() {
           </section>
 
           {/* Tabs */}
-          <div role="tablist" aria-label="Secciones" style={{display:"flex",gap:"4px",marginBottom:"20px",background:"#13131f",padding:"4px",borderRadius:"12px"}}>
+          <div role="tablist" aria-label="Secciones" style={{display:"flex",gap:"4px",marginBottom:"20px",background:"#0d1f35",padding:"4px",borderRadius:"12px"}}>
             {TABS.map(t=>(
               <button key={t.id} role="tab" onClick={()=>setTab(t.id)} aria-selected={tab===t.id} aria-controls={`panel-${t.id}`} id={`tab-${t.id}`}
                 style={{flex:1,padding:"10px",borderRadius:"8px",border:"2px solid transparent",background:tab===t.id?t.color:"transparent",color:tab===t.id?(t.id==="have"?"#0d0d1a":"#fff"):"#a0a0bc",fontFamily:"inherit",fontSize:"13px",fontWeight:"700",cursor:"pointer",transition:"all 0.2s",position:"relative"}}>
@@ -858,7 +866,7 @@ export default function PaniniSwap() {
           {/* Panel: Matches */}
           <div id="panel-match" role="tabpanel" aria-labelledby="tab-match" hidden={tab!=="match"}>
             {!accessGranted&&(
-              <div style={{textAlign:"center",padding:"48px 24px",background:"#13131f",borderRadius:"12px",border:"2px solid #2a2a3d"}}>
+              <div style={{textAlign:"center",padding:"48px 24px",background:"#0d1f35",borderRadius:"12px",border:"2px solid #1a3050"}}>
                 <div aria-hidden="true" style={{fontSize:"40px",marginBottom:"12px"}}>🔒</div>
                 <h2 style={{color:"#e8e8f0",fontSize:"18px",fontWeight:"900",margin:"0 0 8px"}}>Acceso requerido</h2>
                 <p style={{color:"#a0a0bc",fontSize:"14px",lineHeight:"1.6",margin:"0 0 20px"}}>
@@ -874,7 +882,7 @@ export default function PaniniSwap() {
               </div>
             )}
             {accessGranted&&<>
-            <section aria-label="Mi ubicación" style={{background:"#13131f",border:"2px solid #1e1e2e",borderRadius:"12px",padding:"16px",marginBottom:"16px"}}>
+            <section aria-label="Mi ubicación" style={{background:"#0d1f35",border:"2px solid #0a1628",borderRadius:"12px",padding:"16px",marginBottom:"16px"}}>
               <h2 style={{color:"#e8e8f0",fontWeight:"700",fontSize:"15px",margin:"0 0 4px"}}><span aria-hidden="true">📍</span> Mi ubicación</h2>
               {userLoc
                 ?<p style={{color:"#22d3ee",fontSize:"13px",margin:"0 0 12px"}}>Ubicación registrada — los matches muestran distancia</p>
@@ -884,7 +892,7 @@ export default function PaniniSwap() {
               {/* Botón GPS */}
               <div style={{display:"flex",gap:"8px",marginBottom:"10px",flexWrap:"wrap" as const}}>
                 <button onClick={detectLocation} disabled={locLoading}
-                  style={{background:userLoc?"#1a2e1a":"#166534",border:`2px solid ${userLoc?"#22d3ee66":"#22d3ee"}`,borderRadius:"8px",padding:"9px 16px",color:userLoc?"#86efac":"#fff",fontFamily:"inherit",fontWeight:"700",fontSize:"13px",cursor:locLoading?"default":"pointer",whiteSpace:"nowrap" as const}}>
+                  style={{background:userLoc?"#0f2318":"#14532d",border:`2px solid ${userLoc?"#22d3ee66":"#22d3ee"}`,borderRadius:"8px",padding:"9px 16px",color:userLoc?"#86efac":"#fff",fontFamily:"inherit",fontWeight:"700",fontSize:"13px",cursor:locLoading?"default":"pointer",whiteSpace:"nowrap" as const}}>
                   {locLoading?"Detectando...":userLoc?"✓ GPS activo":"📡 Usar GPS"}
                 </button>
                 {userLoc&&(
@@ -896,7 +904,7 @@ export default function PaniniSwap() {
                         setDoc(doc(db,"players",userUUID),entry).catch(console.error);
                       }
                     }}
-                    style={{background:"none",border:"2px solid #3a3a55",borderRadius:"8px",padding:"9px 14px",color:"#888",fontFamily:"inherit",fontSize:"13px",cursor:"pointer"}}>
+                    style={{background:"none",border:"2px solid #2a4a6b",borderRadius:"8px",padding:"9px 14px",color:"#888",fontFamily:"inherit",fontSize:"13px",cursor:"pointer"}}>
                     Quitar
                   </button>
                 )}
@@ -909,10 +917,10 @@ export default function PaniniSwap() {
                   onChange={e=>setLocQuery(e.target.value)}
                   onKeyDown={e=>e.key==="Enter"&&searchLocation()}
                   placeholder="O escribe tu ciudad: San José, CR"
-                  style={{flex:1,background:"#1e1e35",border:"2px solid #3a3a55",borderRadius:"8px",padding:"9px 12px",color:"#e8e8f0",fontFamily:"inherit",fontSize:"13px",outline:"none"}}
+                  style={{flex:1,background:"#0a1628",border:"2px solid #2a4a6b",borderRadius:"8px",padding:"9px 12px",color:"#e8e8f0",fontFamily:"inherit",fontSize:"13px",outline:"none"}}
                 />
                 <button onClick={searchLocation} disabled={locLoading||!locQuery.trim()}
-                  style={{background:"#6366f1",border:"2px solid transparent",borderRadius:"8px",padding:"9px 14px",color:"#fff",fontFamily:"inherit",fontWeight:"700",fontSize:"13px",cursor:"pointer",whiteSpace:"nowrap" as const}}>
+                  style={{background:"#e03c2d",border:"2px solid transparent",borderRadius:"8px",padding:"9px 14px",color:"#fff",fontFamily:"inherit",fontWeight:"700",fontSize:"13px",cursor:"pointer",whiteSpace:"nowrap" as const}}>
                   Buscar
                 </button>
               </div>
@@ -926,7 +934,7 @@ export default function PaniniSwap() {
                 <div role="group" aria-labelledby="dist-label" style={{display:"flex",gap:"6px",flexWrap:"wrap" as const}}>
                   {DIST_OPTS.map(([label,val])=>(
                     <button key={label} onClick={()=>setMaxDist(val)} aria-pressed={maxDist===val}
-                      style={{background:maxDist===val?"#6366f1":"#13131f",border:`2px solid ${maxDist===val?"#6366f1":"#3a3a55"}`,borderRadius:"20px",padding:"5px 12px",color:maxDist===val?"#fff":"#a0a0bc",fontSize:"13px",cursor:"pointer",fontFamily:"inherit",fontWeight:maxDist===val?"700":"400"}}>
+                      style={{background:maxDist===val?"#e03c2d":"#0d1f35",border:`2px solid ${maxDist===val?"#e03c2d":"#2a4a6b"}`,borderRadius:"20px",padding:"5px 12px",color:maxDist===val?"#fff":"#a0a0bc",fontSize:"13px",cursor:"pointer",fontFamily:"inherit",fontWeight:maxDist===val?"700":"400"}}>
                       {label}
                     </button>
                   ))}
@@ -936,7 +944,7 @@ export default function PaniniSwap() {
                   <div role="group" aria-labelledby="sort-label" style={{display:"flex",gap:"6px"}}>
                     {(["score","distance"] as const).map(v=>(
                       <button key={v} onClick={()=>setSortBy(v)} aria-pressed={sortBy===v}
-                        style={{background:sortBy===v?"#1e1e35":"transparent",border:`2px solid ${sortBy===v?"#6366f1":"#3a3a55"}`,borderRadius:"8px",padding:"5px 10px",color:sortBy===v?"#e8e8f0":"#888",fontSize:"13px",cursor:"pointer",fontFamily:"inherit"}}>
+                        style={{background:sortBy===v?"#0a1628":"transparent",border:`2px solid ${sortBy===v?"#e03c2d":"#2a4a6b"}`,borderRadius:"8px",padding:"5px 10px",color:sortBy===v?"#e8e8f0":"#888",fontSize:"13px",cursor:"pointer",fontFamily:"inherit"}}>
                         {v==="score"?"Relevancia":"Distancia"}
                       </button>
                     ))}
@@ -956,14 +964,14 @@ export default function PaniniSwap() {
               <section aria-label={`${matches.length} matches encontrados`}>
                 <p style={{color:"#888",fontSize:"13px",margin:"0 0 16px"}}>
                   {matches.length} coleccionista{matches.length!==1?"s":""} con intercambios posibles.
-                  {newMatchCount>0&&<span style={{color:"#818cf8",marginLeft:"6px"}}>{newMatchCount} nuevo{newMatchCount!==1?"s":""} ✨</span>}
+                  {newMatchCount>0&&<span style={{color:"#a78bfa",marginLeft:"6px"}}>{newMatchCount} nuevo{newMatchCount!==1?"s":""} ✨</span>}
                 </p>
                 {matches.map(m=><MatchCard key={m.name} match={m} myName={userName}/>)}
               </section>
             )}
 
             {myEntry&&(
-              <section aria-label="Tu perfil publicado" style={{marginTop:"24px",padding:"16px",background:"#13131f",borderRadius:"12px",border:"2px solid #1e1e2e"}}>
+              <section aria-label="Tu perfil publicado" style={{marginTop:"24px",padding:"16px",background:"#0d1f35",borderRadius:"12px",border:"2px solid #0a1628"}}>
                 <h2 style={{fontSize:"13px",color:"#888",fontWeight:"400",margin:"0 0 10px"}}>Tu perfil en la red</h2>
                 <dl style={{display:"flex",flexWrap:"wrap" as const,gap:"14px",fontSize:"13px",margin:0}}>
                   <div><dt style={{display:"inline",color:"#888"}}>Repetidas: </dt><dd style={{display:"inline",color:"#f59e0b",margin:0,fontWeight:"700"}}>{myEntry.have.length}</dd></div>
@@ -973,13 +981,13 @@ export default function PaniniSwap() {
                   <div><dt style={{display:"inline",color:"#888"}}>Actualizado: </dt><dd style={{display:"inline",color:"#555",margin:0}}>{new Date(myEntry.updatedAt).toLocaleDateString()}</dd></div>
                 </dl>
                 {accessGranted&&(
-                  <div style={{marginTop:"14px",background:"#0d0d1a",borderRadius:"8px",padding:"12px 14px",border:"1px solid #3a3a55"}}>
+                  <div style={{marginTop:"14px",background:"#0d0d1a",borderRadius:"8px",padding:"12px 14px",border:"1px solid #2a4a6b"}}>
                     <p style={{color:"#888",fontSize:"12px",margin:"0 0 6px"}}>Tu código de perfil — úsalo para acceder desde otro dispositivo:</p>
                     <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                      <code style={{color:"#818cf8",fontFamily:"'DM Mono',monospace",fontSize:"18px",fontWeight:"700",letterSpacing:"0.12em"}}>{shortCode(userUUID)}</code>
+                      <code style={{color:"#a78bfa",fontFamily:"'DM Mono',monospace",fontSize:"18px",fontWeight:"700",letterSpacing:"0.12em"}}>{shortCode(userUUID)}</code>
                       <button onClick={()=>navigator.clipboard?.writeText(shortCode(userUUID))}
                         aria-label="Copiar código de perfil"
-                        style={{background:"#1e1e35",border:"1px solid #3a3a55",borderRadius:"6px",padding:"4px 10px",color:"#a0a0bc",fontSize:"12px",cursor:"pointer",fontFamily:"inherit"}}>
+                        style={{background:"#0a1628",border:"1px solid #2a4a6b",borderRadius:"6px",padding:"4px 10px",color:"#a0a0bc",fontSize:"12px",cursor:"pointer",fontFamily:"inherit"}}>
                         Copiar
                       </button>
                     </div>
