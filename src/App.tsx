@@ -362,7 +362,7 @@ function StickerBtn({code,isSel,isDisabled,accent,isDark,labelPrefix,prefix,onTo
         height:"46px",borderRadius:"8px",
         border:`2px solid ${isDisabled?"#1a3050":isSel?accent:"#2a4a6b"}`,
         background:isDisabled?"#0a1628":isSel?accent:"#0a1628",
-        color:isDisabled?"#2a4a6b":isSel?(isDark?"#0d0d1a":"#fff"):"#a0a0bc",
+        color:isDisabled?"#2a4a6b":isSel?(isDark?"#0d0d1a":"#fff"):"#c8c8dc",
         fontFamily:"'DM Mono',monospace",fontSize:"12px",
         fontWeight:isSel?"700":"400",
         cursor:isDisabled?"not-allowed":"pointer",
@@ -370,14 +370,14 @@ function StickerBtn({code,isSel,isDisabled,accent,isDark,labelPrefix,prefix,onTo
         transform:isSel?"scale(1.06)":"scale(1)",
         opacity:isDisabled?0.35:1
       }}>
-      {code.replace(prefix,"")}
+      {prefix==="00"?"00":code.replace(prefix,"")}
     </button>
   );
 }
 
 // ─── Sticker panel ────────────────────────────────────────────────────────────
 function StickerPanel({selected,onToggle,accent,labelPrefix,disabled}:{selected:string[];onToggle:(c:string)=>void;accent:string;labelPrefix:string;disabled?:string[]}) {
-  const [activeSection,setActiveSection]=useState("FWC");
+  const [activeSection,setActiveSection]=useState("00");
   const section=SECTIONS.find(s=>s.prefix===activeSection)??SECTIONS[0];
   const selCount=section.codes.filter(c=>(selected||[]).includes(c)).length;
   const isDark=accent==="#f59e0b";
