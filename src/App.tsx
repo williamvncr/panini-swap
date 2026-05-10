@@ -19,7 +19,8 @@ const db = getFirestore(firebaseApp);
 
 // ─── Sticker catalog ──────────────────────────────────────────────────────────
 const SECTIONS: { prefix: string; label: string; flag: string; codes: string[] }[] = [
-  { prefix:"FWC", flag:"🏆", label:"FIFA WC",         codes: ["FWC0",...Array.from({length:18},(_,i)=>`FWC${i+1}`)] },
+  { prefix:"00",  flag:"⭐", label:"Especial",         codes: ["00"] },
+  { prefix:"FWC", flag:"🏆", label:"FIFA WC",         codes: Array.from({length:19},(_,i)=>`FWC${i+1}`) },
   { prefix:"MEX", flag:"🇲🇽", label:"México",          codes: Array.from({length:20},(_,i)=>`MEX${i+1}`) },
   { prefix:"RSA", flag:"🇿🇦", label:"Sudáfrica",       codes: Array.from({length:20},(_,i)=>`RSA${i+1}`) },
   { prefix:"KOR", flag:"🇰🇷", label:"Corea",           codes: Array.from({length:20},(_,i)=>`KOR${i+1}`) },
