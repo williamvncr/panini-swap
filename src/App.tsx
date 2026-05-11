@@ -796,15 +796,26 @@ export default function PaniniSwap() {
   const restoreProfile=async()=>{
     const code=restoreCode.trim().toLowerCase();
     if(!code){setRestoreError("Ingresa tu código de perfil.");return;}
-    const matched=allPlayers.find(p=>p.uuid&&p.uuid.startsWith(code));
+    // Buscar por UUID que empiece con el código (case insensitive)
+    const matched=allPlayers.find(p=>p.uuid&&p.uuid.toLowerCase().startsWith(code));
     if(!matched){setRestoreError("No se encontró ningún perfil con ese código. Verifica e intenta de nuevo.");return;}
     const newUUID=matched.uuid;
-    lsSet("ps_uuid",newUUID);lsSet("ps_user",matched.name);
+    // Guardar todo en localStorage
+    lsSet("ps_uuid",newUUID);
+    lsSet("ps_user",matched.name);
     if(matched.phone)lsSet("ps_phone",matched.phone);
-    lsSet("ps_have",JSON.stringify(matched.have));
-    lsSet("ps_want",JSON.stringify(matched.want));
-    setUserUUID(newUUID);setUserName(matched.name);setUserPhone(matched.phone||"");
-    setHave(matched.have);setWant(matched.want);
+    lsSet("ps_have",JSON.stringify(matched.have||[]));
+    lsSet("ps_want",JSON.stringify(matched.want||[]));
+    if(matched.loc)lsSet("ps_loc",JSON.stringify(matched.loc));
+    if(matched.paid){lsSet("ps_access","1");}
+    // Actualizar estado React
+    setUserUUID(newUUID);
+    setUserName(matched.name);
+    setUserPhone(matched.phone||"");
+    setHave(matched.have||[]);
+    setWant(matched.want||[]);
+    if(matched.loc)setUserLoc(matched.loc);
+    if(matched.paid)setAccessGranted(true);
     setView("main");
   };
 
