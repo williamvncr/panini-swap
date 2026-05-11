@@ -653,8 +653,32 @@ export default function PaniniSwap() {
     if(s)setSeenMatches(new Set(JSON.parse(s)));
     if(l)setUserLoc(JSON.parse(l));
     const unsub=onSnapshot(collection(db,"players"),(snap:any)=>{
-      setAllPlayers(snap.docs.map((d:any)=>d.data() as Player));
+      const players=snap.docs.map((d:any)=>d.data() as Player);
+      setAllPlayers(players);
       setAppLoading(false);
+      // Sincronizar datos del usuario actual desde Firestore
+      const currentUUID=lsGet("ps_uuid");
+      if(currentUUID){
+        const myData=players.find((p:Player)=>p.uuid===currentUUID);
+        if(myData){
+          if(myData.have&&myData.have.length>0){
+            setHave(myData.have);
+            lsSet("ps_have",JSON.stringify(myData.have));
+          }
+          if(myData.want&&myData.want.length>0){
+            setWant(myData.want);
+            lsSet("ps_want",JSON.stringify(myData.want));
+          }
+          if(myData.paid){
+            setAccessGranted(true);
+            lsSet("ps_access","1");
+          }
+          if(myData.loc){
+            setUserLoc(myData.loc);
+            lsSet("ps_loc",JSON.stringify(myData.loc));
+          }
+        }
+      }
     },()=>setAppLoading(false));
     return()=>unsub();
   },[]);
