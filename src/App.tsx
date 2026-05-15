@@ -843,6 +843,157 @@ export default function PaniniSwap() {
     setView("main");
   };
 
+
+  const shareHaveList=async()=>{
+    if(!have||have.length===0) return;
+
+    // Agrupar figuras por sección
+    const groups:{ flag:string; label:string; codes:string[] }[]=[];
+    for(const section of SECTIONS){
+      const codes=have.filter(c=>section.codes.includes(c));
+      if(codes.length>0) groups.push({flag:section.flag,label:section.label,codes});
+    }
+
+    // Canvas setup
+    const CARD_W=800;
+    const PAD=32;
+    const COL_W=220;
+    const COLS=3;
+    const ROW_H=28;
+    const HEADER_H=100;
+    const FOOTER_H=60;
+    const GROUP_PAD=14;
+
+    // Calculate height
+    let totalH=HEADER_H+PAD;
+    const groupHeights:number[]=[];
+    for(const g of groups){
+      const rows=Math.ceil(g.codes.length/6);
+      const h=GROUP_PAD*2+20+4+rows*ROW_H+16;
+      groupHeights.push(h);
+    }
+    // Layout in 3 columns
+    const colHeights=[0,0,0];
+    for(let i=0;i<groups.length;i++){
+      const col=colHeights.indexOf(Math.min(...colHeights));
+      colHeights[col]+=groupHeights[i]+12;
+    }
+    totalH+=Math.max(...colHeights)+PAD+FOOTER_H;
+
+    const canvas=document.createElement("canvas");
+    canvas.width=CARD_W;
+    canvas.height=totalH;
+    const ctx=canvas.getContext("2d")!;
+
+    // Background
+    ctx.fillStyle="#0d0d1a";
+    ctx.fillRect(0,0,CARD_W,totalH);
+
+    // Header gradient bar
+    const grad=ctx.createLinearGradient(0,0,CARD_W,0);
+    grad.addColorStop(0,"#e03c2d");
+    grad.addColorStop(0.5,"#f59e0b");
+    grad.addColorStop(1,"#22d3ee");
+    ctx.fillStyle=grad;
+    ctx.fillRect(0,0,CARD_W,6);
+
+    // Title
+    ctx.fillStyle="#e8e8f0";
+    ctx.font="bold 28px system-ui, sans-serif";
+    ctx.fillText("🏆 Panini Swap — Mis Repetidas",PAD,50);
+
+    // Subtitle
+    ctx.fillStyle="#a0a0bc";
+    ctx.font="16px system-ui, sans-serif";
+    ctx.fillText(`${userName}${userPhone?" · WA: "+userPhone:""}  ·  ${have.length} figuras repetidas`,PAD,78);
+
+    // Separator line
+    ctx.fillStyle="#1a3050";
+    ctx.fillRect(PAD,90,CARD_W-PAD*2,2);
+
+    // Draw groups in 3 columns
+    const colX=[PAD, PAD+(CARD_W-PAD*2)/3+6, PAD+((CARD_W-PAD*2)/3)*2+12];
+    const colY=[HEADER_H+PAD,HEADER_H+PAD,HEADER_H+PAD];
+
+    for(let i=0;i<groups.length;i++){
+      const g=groups[i];
+      const col=colY.indexOf(Math.min(...colY));
+      const x=colX[col];
+      let y=colY[col];
+      const h=groupHeights[i];
+
+      // Group card background
+      ctx.fillStyle="#0d1f35";
+      roundRect(ctx,x,y,CARD_W/COLS-20,h,10);
+      ctx.fill();
+
+      // Country header
+      ctx.fillStyle="#e8e8f0";
+      ctx.font="bold 14px system-ui, sans-serif";
+      ctx.fillText(`${g.flag} ${g.label}`,x+GROUP_PAD,y+GROUP_PAD+14);
+
+      // Count badge
+      ctx.fillStyle="#f59e0b22";
+      const badgeW=36;
+      roundRect(ctx,x+CARD_W/COLS-20-GROUP_PAD-badgeW,y+GROUP_PAD,badgeW,20,10);
+      ctx.fill();
+      ctx.fillStyle="#f59e0b";
+      ctx.font="bold 12px system-ui, sans-serif";
+      ctx.textAlign="center";
+      ctx.fillText(`${g.codes.length}`,x+CARD_W/COLS-20-GROUP_PAD-badgeW/2,y+GROUP_PAD+14);
+      ctx.textAlign="left";
+
+      // Sticker codes
+      y+=GROUP_PAD+20+8;
+      let cx=x+GROUP_PAD;
+      let row=0;
+      const section=SECTIONS.find(s=>s.codes.includes(g.codes[0]));
+      for(let j=0;j<g.codes.length;j++){
+        if(j>0&&j%6===0){row++;cx=x+GROUP_PAD;y+=ROW_H;}
+        const num=section?g.codes[j].replace(section.prefix,""):g.codes[j];
+        const tw=ctx.measureText(num).width+12;
+        ctx.fillStyle="#f59e0b33";
+        roundRect(ctx,cx,y,tw,20,4);
+        ctx.fill();
+        ctx.fillStyle="#f59e0b";
+        ctx.font="bold 11px monospace";
+        ctx.fillText(num,cx+6,y+14);
+        cx+=tw+4;
+      }
+
+      colY[col]+=h+12;
+    }
+
+    // Footer
+    const footerY=Math.max(...colY)+16;
+    ctx.fillStyle="#2a4a6b";
+    ctx.fillRect(PAD,footerY,CARD_W-PAD*2,1);
+    ctx.fillStyle="#555";
+    ctx.font="13px system-ui, sans-serif";
+    ctx.fillText("panini-swap-wc2026.netlify.app · FIFA World Cup 2026",PAD,footerY+22);
+
+    // Download
+    const url=canvas.toDataURL("image/png");
+    const a=document.createElement("a");
+    a.href=url;
+    a.download=`panini-swap-${userName}-repetidas.png`;
+    a.click();
+  };
+
+  function roundRect(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,r:number){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.lineTo(x+w-r,y);
+    ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r);
+    ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h);
+    ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r);
+    ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
   const publishToFirebase=async(forcePaid=false)=>{
     if(!userName||saving)return;
     setSaving(true);
@@ -1170,6 +1321,13 @@ export default function PaniniSwap() {
           {/* Panel: Mis Repetidas */}
           <div id="panel-have" role="tabpanel" aria-labelledby="tab-have" hidden={tab!=="have"}>
             <p style={{color:"#a0a0bc",fontSize:"14px",margin:"0 0 12px",lineHeight:"1.6"}}>Selecciona por país las figuras que tienes repetidas, o escribe rangos como <code style={{color:"#f59e0b",background:"#f59e0b11",padding:"1px 6px",borderRadius:"4px"}}>ARG1-5, BRA7</code></p>
+            <div style={{display:"flex",justifyContent:"flex-end",marginBottom:"12px"}}>
+              <button onClick={shareHaveList} disabled={!have||have.length===0}
+                aria-label="Compartir lista de repetidas como imagen"
+                style={{display:"flex",alignItems:"center",gap:"6px",background:have&&have.length>0?"#e03c2d":"#1a3050",border:"2px solid transparent",borderRadius:"8px",padding:"8px 14px",color:have&&have.length>0?"#fff":"#555",fontFamily:"inherit",fontSize:"13px",fontWeight:"700",cursor:have&&have.length>0?"pointer":"not-allowed"}}>
+                <span aria-hidden="true">📤</span> Compartir lista
+              </button>
+            </div>
             <RangeSelector onAdd={addToHave} accent="#f59e0b"/>
             <StickerPanel selected={have} onToggle={toggleHave} accent="#f59e0b" labelPrefix="repetida" disabled={want}/>
             <Footer tab="have"/>
